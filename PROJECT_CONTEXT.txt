@@ -1,0 +1,452 @@
+================================================================================
+  HEALTH OCEAN — COMPLETE PROJECT CONTEXT
+  For any IDE / AI assistant picking this up fresh
+================================================================================
+
+--------------------------------------------------------------------------------
+CONCEPT
+--------------------------------------------------------------------------------
+Health Ocean is a diagnostic lab booking platform — think "Practo for lab tests".
+Users can browse diagnostic tests and health packages offered by registered labs,
+add them to a cart, book a home sample collection appointment, and track their
+bookings and reports. Labs register on the platform, list their tests/packages,
+and manage bookings via a dedicated portal. Admins oversee everything via a
+separate admin panel.
+
+Tagline: "Dive into Better Health"
+
+--------------------------------------------------------------------------------
+MONOREPO STRUCTURE
+--------------------------------------------------------------------------------
+Root: /Health Ocean  (Node.js monorepo with workspaces)
+
+apps/
+  api/              — Express + TypeScript backend (port 4000)
+  web/              — Next.js 14 user-facing website (port 3000)
+  admin-portal/     — Next.js 14 admin dashboard (port 3001)
+  lab-portal/       — Next.js 14 lab management portal (port 3002)
+
+mobile-apps/
+  user-app/         — Flutter app for end users (Android + iOS)
+
+packages/
+  types/            — Shared TypeScript types
+  config/           — Shared ESLint, Prettier, TypeScript configs
+
+--------------------------------------------------------------------------------
+TECH STACK
+--------------------------------------------------------------------------------
+Backend (apps/api):
+  - Node.js + Express + TypeScript
+  - MongoDB (mongoose) — local: mongodb://localhost:27017/health-ocean
+  - JWT auth (HS256, 7d expiry)
+  - bcryptjs for password hashing
+  - Zod for request validation
+  - Port: 4000
+
+Frontend (web / admin-portal / lab-portal):
+  - Next.js 14 App Router
+  - Tailwind CSS
+  - Lucide React icons
+  - TypeScript
+
+Mobile (mobile-apps/user-app):
+  - Flutter (Dart), SDK ^3.11.1
+  - Provider for state management
+  - http package for API calls
+  - flutter_secure_storage for JWT token
+  - table_calendar for date picker
+  - geolocator + flutter_map + latlong2 for location/map
+  - flutter_launcher_icons for app icon generation
+
+--------------------------------------------------------------------------------
+API BASE URL
+--------------------------------------------------------------------------------
+Local dev (web/admin/lab portals): http://localhost:4000/api
+Mobile app (LAN):                  http://10.121.197.207:4000/api
+  *** Update IP in: mobile-apps/user-app/lib/utils/constants.dart ***
+  *** when network changes ***
+
+--------------------------------------------------------------------------------
+API ROUTES SUMMARY
+--------------------------------------------------------------------------------
+POST   /api/users/register          — user signup
+POST   /api/users/login             — user login
+GET    /api/users/profile           — get user profile (JWT required)
+
+GET    /api/tests                   — list all active tests (from all labs)
+GET    /api/tests/:id               — single test detail
+
+GET    /api/packages                — list all active packages
+GET    /api/packages/:id            — single package detail
+
+POST   /api/bookings                — create booking (auto-resolves labId from testIds)
+GET    /api/bookings                — list bookings (filter by ?email=)
+GET    /api/bookings/:id            — single booking
+PATCH  /api/bookings/:id/cancel     — cancel booking
+
+POST   /api/labs/register           — lab registration
+POST   /api/labs/login              — lab login
+POST   /api/labs/employees/register — register lab employee
+GET    /api/labs/:labId/tests       — lab's own tests
+POST   /api/labs/:labId/tests       — add test
+GET    /api/labs/:labId/packages    — lab's own packages
+POST   /api/labs/:labId/packages    — add package
+GET    /api/labs/:labId/stats       — dashboard stats (bookings, revenue, top tests)
+GET    /api/labs/:labId/bookings    — bookings for this lab's tests
+PATCH  /api/labs/tests/:testId      — update test status
+DELETE /api/labs/tests/:testId      — delete test
+PATCH  /api/labs/packages/:id       — update package status
+DELETE /api/labs/packages/:id       — delete package
+GET    /api/labs/:labId             — get lab details
+
+POST   /api/admin/login             — admin login
+GET    /api/admin/labs              — list all labs (with status filter)
+PATCH  /api/admin/labs/:labId/status — approve/reject lab
+GET    /api/admin/users             — list all users
+GET    /api/admin/stats             — platform-wide stats
+
+--------------------------------------------------------------------------------
+DATABASE MODELS
+--------------------------------------------------------------------------------
+User:         name, email, phone, password (hashed)
+Lab:          labId, name, email, phone, password, address, city, state, pincode,
+              nablCertificate, isoCertificate, licenseNumber, establishedYear,
+              description, servicesOffered[], status (Pending/Approved/Rejected)
+LabEmployee:  employeeId, labId, name, email, phone, password, role
+              (Admin/Manager/Technician/Receptionist)
+LabTest:      testId (TEST<timestamp>), labId, name, description, category,
+              price, originalPrice, sampleType, turnaroundTime,
+              preparationRequired, preparationInstructions, parameters[], status
+LabPackage:   packageId (PKG<timestamp>), labId, name, description, category,
+              price, originalPrice, testsIncluded[], features[], status
+Booking:      bookingId (BK<timestamp>), name, email, phone, address, city,
+              pincode, date, timeSlot, testIds[], packageIds[], labId,
+              couponCode, discount, total, totalAmount, status
+              (Confirmed/InProgress/Completed/Cancelled), phlebotomistAssigned
+Admin:        adminId, name, email, password, role (SuperAdmin/Admin)
+
+IMPORTANT — testId mismatch fix:
+  Mobile app sends MongoDB _id as testIds in bookings.
+  Lab stats/bookings endpoints match on BOTH _id AND custom testId field.
+  Booking creation auto-resolves labId from the first testId.
+
+--------------------------------------------------------------------------------
+MONGODB SETUP
+--------------------------------------------------------------------------------
+Local MongoDB on default port 27017, DB name: health-ocean
+.env file at: apps/api/.env
+  PORT=4000
+  JWT_SECRET=<secret>
+  MONGODB_URI=mongodb://localhost:27017/health-ocean
+  NODE_ENV=development
+
+Create super admin:
+  npx ts-node apps/api/src/scripts/createSuperAdmin.ts
+
+--------------------------------------------------------------------------------
+START SCRIPTS (root directory)
+--------------------------------------------------------------------------------
+START_ALL.sh          — starts all services (API + all 3 web apps)
+START_API.sh          — API only
+START_WEB.sh          — user web app only
+START_ADMIN_PORTAL.sh — admin portal only
+START_LAB_PORTAL.sh   — lab portal only
+START_USER_APP.sh     — Flutter mobile app (flutter run)
+TEST_API.sh           — API health check
+
+--------------------------------------------------------------------------------
+MOBILE APP — FLUTTER SCREENS
+--------------------------------------------------------------------------------
+lib/screens/
+  splash_screen.dart          — animated splash with logo + tagline
+  home_screen.dart            — main home with SliverAppBar, wave clipper,
+                                tests/packages sections, bottom nav
+  login_screen.dart           — login with gradient appbar
+  signup_screen.dart          — signup with gradient appbar
+  tests_screen.dart           — browse all tests
+  test_details_screen.dart    — full test detail page
+  packages_screen.dart        — browse all packages
+  package_details_screen.dart — full package detail page
+  cart_screen.dart            — cart with gradient buttons
+  booking_screen.dart         — 3-step booking (Address → Schedule → Review)
+                                with map, pincode lookup, time slots, coupon
+  payment_screen.dart         — COD payment (UPI/Card coming soon)
+  bookings_screen.dart        — user's booking history
+  profile_screen.dart         — redesigned profile with curved header,
+                                stat cards, grouped menu cards
+  reports_screen.dart         — test reports
+  health_history_screen.dart  — health history
+  settings_screen.dart        — app settings
+  search_screen.dart          — search tests/packages
+
+lib/providers/
+  auth_provider.dart          — JWT token + user data (flutter_secure_storage)
+  cart_provider.dart          — cart state (add/remove/clear)
+
+lib/services/
+  api_service.dart            — HTTP client
+  secure_storage_service.dart — token/user persistence
+
+lib/utils/
+  constants.dart              — API base URL (UPDATE IP HERE for LAN)
+  theme.dart                  — Ocean Breeze theme
+  app_toast.dart              — toast notifications
+
+lib/widgets/
+  test_card.dart              — reusable test card
+  package_card.dart           — reusable package card
+
+--------------------------------------------------------------------------------
+OCEAN BREEZE COLOR PALETTE (used everywhere)
+--------------------------------------------------------------------------------
+#03045E  — Deep Navy       (darkest, used for headings/dark text)
+#0077B6  — Ocean Blue      (_gradEnd, primary brand color, buttons right side)
+#00B4D8  — Sky Blue        (_gradMid, gradient middle)
+#90E0EF  — Light Cyan      (_gradStart, gradient left/lighter side)
+#CAF0F8  — Pale Cyan       (backgrounds, info boxes, splash)
+White    — #FFFFFF          (cards, appbar text, icon fills)
+
+Gradient direction: LEFT lighter → RIGHT darker
+  LinearGradient(colors: [#90E0EF, #00B4D8, #0077B6], left → right)
+
+Dart constants (defined per-file):
+  const _gradStart = Color(0xFF90E0EF);
+  const _gradMid   = Color(0xFF00B4D8);
+  const _gradEnd   = Color(0xFF0077B6);
+
+Applied to:
+  - All AppBars (flexibleSpace gradient, transparent backgroundColor)
+  - All primary buttons (DecoratedBox wrapper with gradient)
+  - Splash screen background (light: CAF0F8 → 90E0EF → CAF0F8)
+  - Home screen hero section gradient
+  - Bottom nav floating pill indicator
+  - Profile screen header
+  - Cart total price text, proceed button
+  - Booking screen continue/apply/autofill buttons
+  - Back buttons: outlined with _gradEnd border
+
+Web portals use Tailwind with primary-* color classes mapped to the same palette.
+
+--------------------------------------------------------------------------------
+APP ICON & BRANDING
+--------------------------------------------------------------------------------
+Logo file:    healthoceanlogo.png (root dir, 749x333 RGBA PNG)
+              Also: logo.jpeg, healthoceanlogo.ico
+App display name: "Health Ocean" (Android + iOS)
+Flutter icon: generated via flutter_launcher_icons from assets/logo.jpeg
+              White background, all mipmap sizes generated
+              Run: dart run flutter_launcher_icons (in mobile-apps/user-app/)
+
+Web favicons: apps/web/public/favicon.ico
+              apps/admin-portal/public/favicon.ico
+              apps/lab-portal/public/favicon.ico
+
+--------------------------------------------------------------------------------
+WEB APP (apps/web) — KEY PAGES
+--------------------------------------------------------------------------------
+/                   — landing page (Hero, EasyBooking, HealthConcerns,
+                      RecommendedCheckups, VitalOrgans, WhyTrust sections)
+/tests              — browse all tests (live from DB)
+/packages           — browse all packages (live from DB)
+/booking            — booking flow
+/cart               — cart page
+/login              — user login
+/signup             — user signup
+/dashboard          — user dashboard (protected)
+/lab/login          — lab login
+/lab/register       — lab registration
+/lab/dashboard      — lab dashboard
+/lab/tests/add      — add test
+/lab/packages/add   — add package
+/lab/employees/register — register employee
+
+--------------------------------------------------------------------------------
+ADMIN PORTAL (apps/admin-portal) — KEY PAGES
+--------------------------------------------------------------------------------
+Layout: Collapsible sidebar (Sidebar.tsx + AdminLayout.tsx)
+/login              — admin login
+/dashboard          — overview stats
+/labs               — manage labs (approve/reject)
+/users              — view all users
+/admins             — manage admin accounts
+/analytics          — platform analytics
+
+--------------------------------------------------------------------------------
+LAB PORTAL (apps/lab-portal) — KEY PAGES
+--------------------------------------------------------------------------------
+/login              — lab login
+/register           — new lab registration
+/dashboard          — stats (tests, packages, bookings, revenue chart) + bookings table
+/tests/add          — add new test
+/packages/add       — add new package
+/employees/register — register employee
+
+Lab status flow: Pending → Approved / Rejected (by admin)
+Only Approved labs' tests appear in the public listing.
+
+--------------------------------------------------------------------------------
+AUTH FLOW
+--------------------------------------------------------------------------------
+Users:   JWT stored in flutter_secure_storage (mobile) / localStorage (web)
+Labs:    JWT stored in localStorage, labAuth.ts helper (lab-portal + web)
+Admins:  JWT stored in localStorage, adminAuth.ts helper (admin-portal)
+
+JWT payload:
+  Users:     { userId, email, type: 'user' }
+  Labs:      { labId, email, type: 'lab' }
+  Employees: { employeeId, labId, email, type: 'employee' }
+  Admins:    { adminId, email, role, type: 'admin' }
+
+--------------------------------------------------------------------------------
+BOOKING FLOW (end-to-end)
+--------------------------------------------------------------------------------
+1. User browses tests/packages → taps card → opens detail page
+2. Taps "Add to Cart" → CartProvider stores item with _id, name, price
+3. Goes to Cart → taps "Proceed to Book"
+4. BookingScreen Step 1: Enter address + pincode (OSM lookup) + map location
+5. BookingScreen Step 2: Pick date (TableCalendar) + time slot
+6. BookingScreen Step 3: Review + apply coupon (HEALTH10/OCEAN20/FIRST15)
+7. PaymentScreen: COD only currently → POST /api/bookings
+   Booking stores testIds (as MongoDB _id strings), API resolves labId
+8. Lab sees booking in /dashboard bookings table
+
+--------------------------------------------------------------------------------
+KNOWN ISSUES / THINGS TO WATCH
+--------------------------------------------------------------------------------
+1. testId format mismatch: Mobile sends _id, API now handles both formats.
+   Old bookings in DB may not show in lab dashboard (created before the fix).
+
+2. Mobile API IP: constants.dart has hardcoded LAN IP 10.121.197.207:4000
+   Must update when network changes.
+
+3. iOS alpha channel warning: App icon has alpha channel — set
+   remove_alpha_ios: true in pubspec if submitting to App Store.
+
+4. Payment: Only COD implemented. UPI/Card/NetBanking show "Coming Soon".
+
+5. Reports screen: UI exists but no real report upload/download API yet.
+
+6. Health History screen: UI exists but no real data API yet.
+
+7. Lab portal dashboard: Bookings only show if tests were added by that lab
+   AND bookings were made after the labId fix was deployed.
+
+--------------------------------------------------------------------------------
+WHAT'S DONE
+--------------------------------------------------------------------------------
+✅ Full monorepo setup (API + 3 web apps + Flutter app)
+✅ MongoDB models for all entities
+✅ User auth (register/login/JWT)
+✅ Lab auth (register/login/JWT) with approval workflow
+✅ Admin auth + super admin script
+✅ Tests & packages CRUD (lab adds, public reads)
+✅ Booking creation with labId resolution
+✅ Lab dashboard with real stats + bookings table
+✅ Admin portal with collapsible sidebar layout
+✅ Flutter app — all screens built and connected to real API
+✅ Ocean Breeze palette applied across all Flutter screens
+✅ Cart with add/remove/clear, persisted via Provider
+✅ 3-step booking flow with map, pincode lookup, time slots, coupon
+✅ Profile screen redesigned (curved header, stat cards, grouped menu)
+✅ App icon generated (white bg + logo, all sizes)
+✅ Display name "Health Ocean" on Android + iOS
+✅ Splash screen with light gradient + tagline
+✅ Bottom nav with floating pill + sliding indicator animation
+✅ Wave clipper on home screen hero section
+✅ Test/package detail pages (separate pages, not bottom sheets)
+✅ Lab portal dashboard page with stats + bookings
+✅ Sanmare Assist AI Chatbot (Intent-based medical guidance, greeting logic, web search integration)
+✅ Chat history persistence (SharedPreferences) for AI messages
+✅ New Chat functionality with safety confirmation dialog
+✅ AI Source filtering (excluded Wikipedia) & modern UI chips for links
+✅ Redesigned chatbot input area (floating card style with circular gradient button)
+✅ Language-aware AI responses (English/Hinglish detection with no mixing)
+--------------------------------------------------------------------------------
+WHAT'S LEFT / TODO
+--------------------------------------------------------------------------------
+❌ Reports upload/download (API + UI)
+❌ Health history real data (API + UI)
+❌ UPI / Card / NetBanking payment integration
+❌ Push notifications (booking confirmation, status updates)
+❌ Phlebotomist assignment flow (admin/lab side)
+❌ Booking status updates (In Progress → Completed)
+❌ Lab profile edit page
+❌ User profile edit page
+❌ Search functionality (mobile search_screen.dart exists, needs API)
+❌ Admin analytics page (real charts)
+❌ Web app full Ocean Breeze palette pass
+❌ Production deployment config (env vars, CORS, HTTPS)
+❌ App Store / Play Store submission prep
+❌ Fix AI service linting and NoneType errors in main.py
+❌ Chatbot Voice Input (Speech-to-Text)
+❌ Chatbot Report Analysis (Analyzing uploaded report text via AI)
+❌ Export AI chat history as PDF/Shareable link
+--------------------------------------------------------------------------------
+IMPORTANT RULES (from project owner)
+--------------------------------------------------------------------------------
+- NEVER use fake/mock data — always fetch from real API/DB
+- Test/package details open as separate pages, NOT overlays/bottom sheets
+- All appbars use the same Ocean Breeze gradient (left lighter → right darker)
+- Use strReplace tool for file edits (sed silently fails in this environment)
+- Do NOT create .md files (except README)
+- Gradient: _gradStart(90E0EF) → _gradMid(00B4D8) → _gradEnd(0077B6)
+
+================================================================================
+
+
+Based on the 
+
+PROJECT_CONTEXT.txt
+ documentation and our recent work together, here is a strategic overview of what remains on your immediate roadmap, followed by advanced feature concepts to make Health Ocean truly unique and highly competitive in the digital health market.
+
+📋 1. Immediate Roadmap (What's Left)
+We just successfully crossed "Reports upload/download" off your list! Based on your tracking, here are the most critical pending items:
+
+Core Functionality:
+Integrating real Health History data into the existing mobile UI (parsing past test results).
+Realizing the Search functionality (wiring up an API route for search_screen.dart so users can dynamically query tests and packages).
+Building out the Lab & User profile edit screens.
+Operations & Logistics:
+Implementing the Phlebotomist assignment flow for the lab/admin side.
+Adding granular Booking Status Updates (Confirmed → Phlebotomist Assigned → Sample Collected → In Progress → Completed).
+Payments & Notifications:
+Unlocking UPI/Card/NetBanking (e.g., using Razorpay, Stripe, or Cashfree) to replace the COD-only model.
+Enabling Push Notifications (via Firebase Cloud Messaging) to alert users about booking status changes or report availability.
+Web & DevOps:
+Completing the "Ocean Breeze" styling pass on the Web App.
+Finalizing Admin Analytics (adding Chart.js or Recharts to the dashboard).
+Preparing for Production (Environment variables, CORS strictness, HTTPS) and App Store submission.
+🚀 2. Game-Changing Feature Ideas (To Make Health Ocean Unique)
+To move beyond just being a "Practo clone" and offer an exceptional, sticky user experience, consider these advanced features:
+
+🧠 A. AI-Powered Report Summaries (Massive Value Add)
+The Problem: Patients receive complex PDFs full of medical jargon and reference ranges they don't understand, causing anxiety.
+The Solution: Integrate an LLM (like Gemini or OpenAI) on the backend. When a lab uploads a PDF, the backend quietly parses the text, extracts out-of-bound markers, and generates a simple, plain-English "Health Summary" payload.
+App Experience: Under the PDF download button, users see a “What this means” card highlighting key takeaways (e.g., "Your Vitamin D levels are slightly below normal, but your Lipid profile has improved since last time.").
+📈 B. visual Smart Health History (Biomarker Graphing)
+Instead of treating tests as isolated PDFs, require labs to input (or use OCR to extract) key metrics (HbA1c, Cholesterol, Thyroid).
+Plot these metrics on beautifully interactive line graphs in the Health History screen. Users can visually track their health journey over the years.
+👨‍👩‍👧‍👦 C. Family Member Profiles
+Usually, one tech-savvy member of a household books tests for elderly parents or children.
+Allow users to create sub-profiles under their main account. During booking, they select "Who is this test for?". The app automatically segregates reports and health histories by family member.
+📍 D. Live Phlebotomist Tracking
+Give the feeling of Uber/Swiggy to healthcare. If a home sample collection is booked, integrate Google Maps in the app to show the live location of the phlebotomist on the day of the appointment with an ETA.
+💬 E. WhatsApp API Integration
+In markets where WhatsApp is dominant, email isn't always checked quickly. Use a service like Twilio or Meta's WhatsApp API to automatically push the PDF report to the user’s WhatsApp as soon as the lab marks the booking as "Completed".
+
+🔄 F. Preventative Care Subscriptions
+Create recurring "Health Ocean Packages" (e.g., Quarterly Diabetic Checkup, Annual Comprehensive Wellness).
+Users subscribe once via a saved card/UPI mandate. The app automatically schedules their home collections every X months, generating highly predictable recurring revenue for the platform.
+
+🌙 G. Offline Report Vault
+Use SQLite or Hive locally in Flutter to cache downloaded PDFs and the JSON of report summaries. Allow users to open their "Report Vault" at the doctor's clinic even if they have a bad mobile network connection.
+
+🤖 H. Conversational Health Booking
+Turn the Sanmare Assist chatbot into a booking engine. Allow users to say "Book a thyroid test for tomorrow morning at my home" and have the AI prepare the cart and navigate them directly to the review screen.
+
+🎙️ I. Voice-First Interaction
+Add a microphone button to Sanmare Assist for hands-free health queries, making the app accessible for elderly users or those with limited mobility.
+Where should we head next? If you want to focus on core operations, hooking up the Search API or the Phlebotomist Assignment Flow are great next steps. If you want to dive into monetizing, we could start plotting the Payment Gateway Integration. What sounds best to you?
+
+
