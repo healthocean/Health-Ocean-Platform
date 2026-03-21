@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+langchain
+langchain-community
+langchain-chroma
+langchain-huggingface
+sentence-transformers
+pypdf
+pandas
+pydantic
+langchain-groq
+python-dotenv
+duckduckgo-search

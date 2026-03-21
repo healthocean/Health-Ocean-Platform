@@ -117,3 +117,8 @@ gradlew
 gradlew.bat
 local.properties
 GeneratedPluginRegistrant.java
+
+# AI Service
+apps/ai-service/venv/
+apps/ai-service/__pycache__/
+apps/ai-service/chroma_db/

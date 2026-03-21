@@ -1,0 +1,14 @@
+{
+  "extends": "@health-ocean/config/typescript/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@health-ocean/*": ["packages/*/src"],
+      "@health-ocean/config/*": ["packages/config/*"],
+      "@health-ocean/types/*": ["packages/types/*"],
+      "@health-ocean/ui/*": ["packages/ui/*"],
+      "@health-ocean/utils/*": ["packages/utils/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", ".next"]
+}
