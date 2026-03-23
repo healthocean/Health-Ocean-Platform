@@ -10,7 +10,7 @@ class ApiConstants {
   static const String search = '$baseUrl/search';
   static const String bookings = '$baseUrl/bookings';
   static const String profile = '$baseUrl/users/profile';
-  static const String chatbot = 'http://10.121.197.207:8000/api/chat';
+  static const String chatbot = 'https://tejas0041-sanmare-assist.hf.space/api/chat';
 
   // Ocean palette
   static const Color oceanStart = Color(0xFF90E0EF);

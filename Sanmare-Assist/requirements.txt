@@ -1,0 +1,5 @@
+fastapi
+pydantic
+huggingface_hub
+uvicorn
+gradio
