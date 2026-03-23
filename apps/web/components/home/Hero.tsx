@@ -140,6 +140,13 @@ export default function Hero() {
             <span className="text-2xl">📄</span>
             <span className="font-medium">Upload Prescription</span>
           </button>
+          <button 
+            onClick={() => document.getElementById('nearby-labs')?.scrollIntoView({ behavior: 'smooth' })}
+            className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 rounded-full hover:border-primary-500 hover:bg-primary-50 transition shadow-sm"
+          >
+            <span className="text-2xl">📍</span>
+            <span className="font-medium text-primary-600">Labs Near Me</span>
+          </button>
         </div>
 
         {/* PLUS Membership Banner */}

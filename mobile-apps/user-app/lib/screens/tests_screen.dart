@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../providers/cart_provider.dart';
 import '../utils/app_toast.dart';
@@ -8,7 +9,16 @@ import '../utils/constants.dart';
 import 'test_details_screen.dart';
 
 class TestsScreen extends StatefulWidget {
-  const TestsScreen({super.key});
+  final String? initialCategory;
+  final String? initialGender;
+  final String? initialOrgan;
+
+  const TestsScreen({
+    super.key,
+    this.initialCategory,
+    this.initialGender,
+    this.initialOrgan,
+  });
 
   @override
   State<TestsScreen> createState() => _TestsScreenState();
@@ -26,14 +36,30 @@ class _TestsScreenState extends State<TestsScreen> {
   final _scrollController = ScrollController();
   
   String _sortOption = 'None';
-  String _selectedCategory = 'All';
+  late String _selectedCategory;
+  late String? _selectedGender;
+  late String? _selectedOrgan;
 
-  final List<String> _categories = ['All', 'Men', 'Women', 'Full Body', 'Fever', 'Diabetes', 'Thyroid', 'Heart'];
+  final List<String> _categories = [
+    'All', 
+    'Full Body Checkups', 
+    'Fever', 
+    'Thyroid', 
+    'Diabetes', 
+    'Heart Health', 
+    'Allergy Tests', 
+    'Hair & Skin',
+    'Men', 
+    'Women'
+  ];
   final List<String> _sortOptions = ['None', 'Price: Low to High', 'Price: High to Low'];
 
   @override
   void initState() {
     super.initState();
+    _selectedCategory = widget.initialCategory ?? 'All';
+    _selectedGender = widget.initialGender;
+    _selectedOrgan = widget.initialOrgan;
     _loadInitialTests();
     _scrollController.addListener(_onScroll);
   }
@@ -61,12 +87,22 @@ class _TestsScreenState extends State<TestsScreen> {
       _tests.clear();
     });
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final lat = prefs.getDouble('cached_lat')?.toString();
+      final lng = prefs.getDouble('cached_lng')?.toString();
+      final pincode = prefs.getString('cached_pincode');
+
       final data = await ApiService.getTests(
         page: _currentPage,
         limit: _limit,
         search: _searchController.text.trim(),
         category: _selectedCategory,
         sort: _sortOption,
+        gender: _selectedGender,
+        organ: _selectedOrgan,
+        lat: lat,
+        lng: lng,
+        pincode: pincode,
       );
       if (mounted) {
         setState(() {
@@ -84,12 +120,22 @@ class _TestsScreenState extends State<TestsScreen> {
     if (_isMoreLoading || !mounted) return;
     setState(() => _isMoreLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final lat = prefs.getDouble('cached_lat')?.toString();
+      final lng = prefs.getDouble('cached_lng')?.toString();
+      final pincode = prefs.getString('cached_pincode');
+
       final data = await ApiService.getTests(
         page: _currentPage + 1,
         limit: _limit,
         search: _searchController.text.trim(),
         category: _selectedCategory,
         sort: _sortOption,
+        gender: _selectedGender,
+        organ: _selectedOrgan,
+        lat: lat,
+        lng: lng,
+        pincode: pincode,
       );
       if (mounted) {
         setState(() {

@@ -19,13 +19,48 @@ class ApiService {
     };
   }
 
-  static Future<Map<String, dynamic>> getTests({int page = 1, int limit = 10, String? search, String? category, String? sort}) async {
+  static Map<String, String> _getLocationParams({String? lat, String? lng, String? pincode}) {
+    final params = <String, String>{};
+    if (lat != null && lng != null && lat != 'null' && lng != 'null') {
+      params['lat'] = lat;
+      params['lng'] = lng;
+    }
+    if (pincode != null && pincode != 'null') {
+      params['pincode'] = pincode;
+    }
+    return params;
+  }
+
+  static Future<Map<String, dynamic>> getTests({
+    int page = 1, 
+    int limit = 10, 
+    String? search, 
+    String? category, 
+    String? sort,
+    String? lat,
+    String? lng,
+    String? pincode,
+    String? labId,
+    String? gender,
+    String? organ,
+  }) async {
+    if (labId != null) {
+      final uri = Uri.parse('${ApiConstants.baseUrl}/labs/$labId/tests');
+      final response = await http.get(uri, headers: _getHeaders()).timeout(_timeout);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Failed to load lab tests: ${response.statusCode}');
+    }
     final queryParams = {
       'page': page.toString(),
       'limit': limit.toString(),
       if (search != null && search.isNotEmpty) 'search': search,
       if (category != null && category != 'All') 'category': category,
+      if (gender != null && gender != 'All') 'gender': gender,
+      if (organ != null && organ != 'All') 'organ': organ,
       if (sort != null && sort != 'None') 'sort': sort,
+      ..._getLocationParams(lat: lat, lng: lng, pincode: pincode),
     };
     
     final uri = Uri.parse(ApiConstants.tests).replace(queryParameters: queryParams);
@@ -43,6 +78,16 @@ class ApiService {
     throw Exception('Failed to load tests: ${response.statusCode}');
   }
 
+  static Future<List<dynamic>> getNearbyLabs({double? lat, double? lng, double radiusKm = 50}) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/labs/nearby/search?lat=$lat&lng=$lng&radiusKm=$radiusKm');
+    final response = await http.get(uri, headers: _getHeaders()).timeout(_timeout);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['labs'] ?? [];
+    }
+    return [];
+  }
+
   static Future<Map<String, dynamic>> getTestById(String id) async {
     final response = await http
         .get(
@@ -57,13 +102,36 @@ class ApiService {
     throw Exception('Failed to load test: ${response.statusCode}');
   }
 
-  static Future<Map<String, dynamic>> getPackages({int page = 1, int limit = 10, String? search, String? category, String? sort}) async {
+  static Future<Map<String, dynamic>> getPackages({
+    int page = 1, 
+    int limit = 10, 
+    String? search, 
+    String? category, 
+    String? sort,
+    String? lat,
+    String? lng,
+    String? pincode,
+    String? labId,
+    String? gender,
+    String? organ,
+  }) async {
+    if (labId != null) {
+      final uri = Uri.parse('${ApiConstants.baseUrl}/labs/$labId/packages');
+      final response = await http.get(uri, headers: _getHeaders()).timeout(_timeout);
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      throw Exception('Failed to load lab packages: ${response.statusCode}');
+    }
     final queryParams = {
       'page': page.toString(),
       'limit': limit.toString(),
       if (search != null && search.isNotEmpty) 'search': search,
       if (category != null && category != 'All') 'category': category,
+      if (gender != null && gender != 'All') 'gender': gender,
+      if (organ != null && organ != 'All') 'organ': organ,
       if (sort != null && sort != 'None') 'sort': sort,
+      ..._getLocationParams(lat: lat, lng: lng, pincode: pincode),
     };
 
     final uri = Uri.parse(ApiConstants.packages).replace(queryParameters: queryParams);
@@ -81,9 +149,14 @@ class ApiService {
     throw Exception('Failed to load packages: ${response.statusCode}');
   }
 
-  static Future<List<dynamic>> search(String query) async {
+  static Future<List<dynamic>> search(String query, {String? lat, String? lng, String? pincode}) async {
+    final queryParams = {
+      'q': query,
+      ..._getLocationParams(lat: lat, lng: lng, pincode: pincode),
+    };
+    final uri = Uri.parse(ApiConstants.search).replace(queryParameters: queryParams);
     final response = await http
-        .get(Uri.parse('${ApiConstants.search}?q=${Uri.encodeComponent(query)}'), headers: _getHeaders())
+        .get(uri, headers: _getHeaders())
         .timeout(_timeout);
 
     if (response.statusCode == 200) {

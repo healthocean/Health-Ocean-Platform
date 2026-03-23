@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../services/api_service.dart';
 import '../providers/cart_provider.dart';
@@ -48,7 +49,12 @@ class _SearchScreenState extends State<SearchScreen> {
         _isLoading = true;
       });
       try {
-        final results = await ApiService.search(query);
+        final prefs = await SharedPreferences.getInstance();
+        final lat = prefs.getDouble('cached_lat')?.toString();
+        final lng = prefs.getDouble('cached_lng')?.toString();
+        final pincode = prefs.getString('cached_pincode');
+        
+        final results = await ApiService.search(query, lat: lat, lng: lng, pincode: pincode);
         if (mounted) {
           setState(() {
             _searchResults = results;

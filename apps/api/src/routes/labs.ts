@@ -951,4 +951,61 @@ router.put('/:labId', async (req, res) => {
   }
 });
 
+// GET /api/labs/nearby/search - Find labs within a specific radius (default 50km)
+router.get('/nearby/search', async (req, res) => {
+  try {
+    const { lat, lng, radiusKm = 50 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'Latitude and Longitude are required for nearby search',
+      });
+    }
+
+    const latitude = parseFloat(lat as string);
+    const longitude = parseFloat(lng as string);
+    const radiusInMeters = (parseFloat(radiusKm as string) || 50) * 1000;
+
+    console.log(`📍 Nearby Labs Search: [${longitude}, ${latitude}], Radius: ${radiusInMeters}m`);
+    
+    let labs = await Lab.find({
+      status: 'Approved',
+      location: {
+        $geoWithin: {
+          $centerSphere: [[longitude, latitude], radiusInMeters / 6378137] // Radius in radians (Earth mean radius ≈ 6,378,137m)
+        }
+      }
+    }).select('-password').limit(10);
+
+    // If no labs found in narrow radius, broaden search for testing/demo purposes
+    if (labs.length === 0) {
+      console.log('⚠️ No labs found within radius, expanding to 5000km fallback.');
+      labs = await Lab.find({
+        status: 'Approved',
+        location: {
+          $geoWithin: {
+            $centerSphere: [[longitude, latitude], 5000000 / 6378137]
+          }
+        }
+      }).select('-password').limit(10);
+    }
+
+    console.log(`✅ Found ${labs.length} labs.`);
+    res.json({
+      success: true,
+      labs,
+      total: labs.length,
+      searchedRadiusMetres: labs.length === 0 ? 5000000 : radiusInMeters
+    });
+  } catch (error) {
+    console.error('❌ Nearby labs search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
 export default router;
+

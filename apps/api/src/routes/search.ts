@@ -8,22 +8,36 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const searchTerm = (req.query.q as string) || (req.query.query as string);
+    const { lat, lng, radius } = req.query;
+    const radKm = parseFloat(radius as string) || 50;
+
     if (!searchTerm) {
       return res.json({ success: true, tests: [], packages: [], results: [] });
     }
 
     const regex = new RegExp(searchTerm, 'i');
 
+    const locationFilter: any = { 'labInfo.status': 'Approved' };
+    if (lat && lng) {
+      locationFilter['labInfo.location'] = {
+        $geoWithin: {
+          $centerSphere: [[parseFloat(lng as string), parseFloat(lat as string)], radKm / 6378.1]
+        }
+      };
+    }
+
     const tests = await LabTest.aggregate([
-      { $match: { $or: [{ name: regex }, { description: regex }, { category: regex }, { organ: regex }] } },
+      { $match: { status: 'Active', $or: [{ name: regex }, { description: regex }, { category: regex }, { organ: regex }] } },
       { $lookup: { from: 'labs', localField: 'labId', foreignField: 'labId', as: 'labInfo' } },
-      { $unwind: { path: '$labInfo', preserveNullAndEmptyArrays: true } }
+      { $unwind: { path: '$labInfo', preserveNullAndEmptyArrays: false } },
+      { $match: locationFilter }
     ]);
 
     const packages = await LabPackage.aggregate([
-      { $match: { $or: [{ name: regex }, { description: regex }, { category: regex }, { organ: regex }] } },
+      { $match: { status: 'Active', $or: [{ name: regex }, { description: regex }, { category: regex }, { organ: regex }] } },
       { $lookup: { from: 'labs', localField: 'labId', foreignField: 'labId', as: 'labInfo' } },
-      { $unwind: { path: '$labInfo', preserveNullAndEmptyArrays: true } }
+      { $unwind: { path: '$labInfo', preserveNullAndEmptyArrays: false } },
+      { $match: locationFilter }
     ]);
 
     const testResults = tests.map(t => ({ 

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
@@ -20,9 +21,15 @@ import 'profile_screen.dart';
 import 'search_screen.dart';
 import 'tests_screen.dart';
 import 'packages_screen.dart';
+import 'labs_screen.dart';
+import 'lab_detail_screen.dart';
 import 'sanmare_assist_screen.dart';
 import '../utils/history_service.dart';
+import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
+// Just in case
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,11 +46,65 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   String? _currentCity;
   String? _currentPincode;
   List<Map<String, dynamic>> _browsedItems = [];
-  PageController _promoController = PageController(initialPage: 5001, viewportFraction: 1.0);
+  final PageController _promoController = PageController(initialPage: 5001, viewportFraction: 1.0);
   int _currentPromoRawPage = 5001;
   int _currentPromoPage = 0;
   late Stream<int> _promoStream;
   bool _isPromoInteracting = false;
+
+  bool _isLocationChecking = false;
+  List<dynamic> _nearbyLabs = [];
+  bool _isLabsLoading = false;
+  double? _userLat;
+  double? _userLng;
+
+  final PageController _topLabsController = PageController(initialPage: 5000, viewportFraction: 0.88);
+  Timer? _topLabsTimer;
+  int _currentTopLabRawPage = 5000;
+  int _currentTopLabPage = 0;
+  bool _isTopLabsInteracting = false;
+
+  String? _initialTestCategory;
+  String? _initialTestGender;
+  String? _initialTestOrgan;
+  String? _initialPkgCategory;
+  String? _initialPkgGender;
+  String? _initialPkgOrgan;
+
+  void _navToTests({String? category, String? gender, String? organ}) {
+    setState(() {
+      _initialTestCategory = category;
+      _initialTestGender = gender;
+      _initialTestOrgan = organ;
+      _selectedIndex = 1;
+    });
+  }
+
+  void _navToPackages({String? category, String? gender, String? organ}) {
+    setState(() {
+      _initialPkgCategory = category;
+      _initialPkgGender = gender;
+      _initialPkgOrgan = organ;
+      _selectedIndex = 2;
+    });
+  }
+
+  Future<void> _fetchNearbyLabs(double lat, double lng) async {
+    if (_isLabsLoading) return;
+    if (mounted) setState(() => _isLabsLoading = true);
+    try {
+      final labs = await ApiService.getNearbyLabs(lat: lat, lng: lng);
+      if (mounted) {
+        setState(() {
+          _nearbyLabs = labs;
+          _isLabsLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching nearby labs: $e');
+      if (mounted) setState(() => _isLabsLoading = false);
+    }
+  }
 
   @override
   void initState() {
@@ -51,14 +112,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     WidgetsBinding.instance.addObserver(this);
     _loadData();
     _loadHistory();
-    _initLocationDetection();
+    _loadCachedLocation().then((_) => _initLocationDetection());
     _startPromoTimer();
+  }
+
+  Future<void> _loadCachedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final city = prefs.getString('cached_city');
+      final pin = prefs.getString('cached_pincode');
+      final lat = prefs.getDouble('cached_lat');
+      final lng = prefs.getDouble('cached_lng');
+      if (mounted) {
+        setState(() {
+          if (city != null) _currentCity = city;
+          if (pin != null) _currentPincode = pin;
+          if (lat != null) _userLat = lat;
+          if (lng != null) _userLng = lng;
+        });
+        // Immediately fetch labs for the cached location
+        if (lat != null && lng != null) {
+          _fetchNearbyLabs(lat, lng);
+        }
+      }
+    } catch (e) {
+      print('Error loading cached location: $e');
+    }
   }
 
   void _startPromoTimer() {
     Future.delayed(const Duration(milliseconds: 3300), () {
       if (!mounted) return;
-      if (!_isPromoInteracting && _promoController.hasClients) {
+      if (!_isPromoInteracting && _promoController.hasClients && _promoController.positions.length == 1) {
         final total = 7; // Matching our new promo asset count
         final nextPage = _currentPromoRawPage + 1;
         _promoController.animateToPage(
@@ -74,9 +159,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
+  void _startTopLabsTimer() {
+    if (_topLabsTimer != null || _nearbyLabs.isEmpty) return;
+    _topLabsTimer = Timer.periodic(const Duration(seconds: 2, milliseconds: 600), (timer) {
+      if (!mounted || _isTopLabsInteracting || _nearbyLabs.isEmpty) return;
+      if (_topLabsController.hasClients) {
+        final nextPage = _currentTopLabRawPage + 1;
+        _topLabsController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     _promoController.dispose();
+    _topLabsController.dispose();
+    _topLabsTimer?.cancel(); // Cancel the top labs timer
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -89,59 +191,78 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _initLocationDetection() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _detectLocationByIP();
-      return;
-    }
+    if (_isLocationChecking) return;
+    _isLocationChecking = true;
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    
-    // If not determined yet, ask once
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-      try {
-        // Try getting last known position first (fast) then fresh position (accurate)
-        Position? pos = await Geolocator.getLastKnownPosition();
-        
-        try {
-          pos = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.medium,
-            timeLimit: const Duration(seconds: 12),
-          );
-        } catch (_) {
-          // If fresh position fails/times out, we still have our last known (if any)
-        }
-
-        if (pos != null) {
-          final uri = Uri.parse(
-            'https://nominatim.openstreetmap.org/reverse?lat=${pos.latitude}&lon=${pos.longitude}&format=json&addressdetails=1',
-          );
-          final res = await http.get(uri, headers: {'User-Agent': 'HealthOceanApp/1.0'});
-          final data = json.decode(res.body);
-          final addr = data['address'] as Map<String, dynamic>;
-          
-          final city = addr['city'] ?? addr['town'] ?? addr['district'] ?? addr['village'] ?? addr['suburb'] ?? addr['state_district'] ?? '';
-          final pin = addr['postcode']?.toString().replaceAll(' ', '').substring(0, 6) ?? '';
-          
-          if (mounted && (city.isNotEmpty || pin.isNotEmpty)) {
-            setState(() {
-              if (city.isNotEmpty) _currentCity = city;
-              if (pin.isNotEmpty) _currentPincode = pin;
-            });
-            return; // GPS success
-          }
-        }
-      } catch (e) {
-        print('GPS location resolution failed: $e');
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await _detectLocationByIP();
+        _isLocationChecking = false;
+        return;
       }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      // If not determined yet, ask once
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        try {
+          // Try getting last known position first (fast) then fresh position (accurate)
+          Position? pos = await Geolocator.getLastKnownPosition();
+          
+          try {
+            pos = await Geolocator.getCurrentPosition(
+              desiredAccuracy: LocationAccuracy.medium,
+              timeLimit: const Duration(seconds: 12),
+            );
+          } catch (_) {
+            // If fresh position fails/times out, we still have our last known (if any)
+          }
+
+          if (pos != null) {
+            final uri = Uri.parse(
+              'https://nominatim.openstreetmap.org/reverse?lat=${pos.latitude}&lon=${pos.longitude}&format=json&addressdetails=1',
+            );
+            final res = await http.get(uri, headers: {'User-Agent': 'HealthOceanApp/1.0'});
+            final data = json.decode(res.body);
+            final addr = data['address'] as Map<String, dynamic>;
+            
+            final city = addr['city'] ?? addr['town'] ?? addr['district'] ?? addr['village'] ?? addr['suburb'] ?? addr['state_district'] ?? '';
+            final pin = addr['postcode']?.toString().replaceAll(' ', '').substring(0, 6) ?? '';
+            
+            if (mounted) {
+              setState(() {
+                if (city.isNotEmpty) _currentCity = city;
+                if (pin.isNotEmpty) _currentPincode = pin;
+                _userLat = pos!.latitude;
+                _userLng = pos!.longitude;
+              });
+              // Always save to cache and refresh labs with success
+              final prefs = await SharedPreferences.getInstance();
+              if (city.isNotEmpty) await prefs.setString('cached_city', city);
+              if (pin.isNotEmpty) await prefs.setString('cached_pincode', pin);
+              await prefs.setDouble('cached_lat', pos!.latitude);
+              await prefs.setDouble('cached_lng', pos!.longitude);
+              
+              _fetchNearbyLabs(pos!.latitude, pos!.longitude);
+              _isLocationChecking = false;
+              return; // success
+            }
+          }
+        } catch (e) {
+          print('GPS location resolution failed: $e');
+        }
+      }
+      
+      // Fallback to IP detection if GPS is denied or fails
+      await _detectLocationByIP();
+    } finally {
+      _isLocationChecking = false;
     }
-    
-    // Fallback to IP detection if GPS is denied or fails
-    _detectLocationByIP();
   }
 
   Future<void> _detectLocationByIP() async {
@@ -149,11 +270,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       final response = await http.get(Uri.parse('http://ip-api.com/json'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        final city = data['city'];
+        final pin = data['zip'];
+        
         if (mounted) {
-          setState(() {
-            _currentCity = data['city'];
-            _currentPincode = data['zip'];
-          });
+          if (city != _currentCity || pin != _currentPincode) {
+            setState(() {
+              _currentCity = city;
+              _currentPincode = pin;
+            });
+            // Save to cache
+            final prefs = await SharedPreferences.getInstance();
+            if (city != null) await prefs.setString('cached_city', city);
+            if (pin != null) await prefs.setString('cached_pincode', pin);
+            if (data['lat'] != null) await prefs.setDouble('cached_lat', double.parse(data['lat'].toString()));
+            if (data['lon'] != null) await prefs.setDouble('cached_lng', double.parse(data['lon'].toString()));
+            setState(() {
+              _userLat = double.parse(data['lat'].toString());
+              _userLng = double.parse(data['lon'].toString());
+            });
+            // Fetch nearby labs
+            _fetchNearbyLabs(double.parse(data['lat'].toString()), double.parse(data['lon'].toString()));
+          }
         }
       }
     } catch (e) {
@@ -198,6 +336,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   static const _gradEnd   = Color(0xFF0077B6); // Bright Teal Blue (label/indicator color)
   static const _gradRight = Color(0xFF0077B6); // Bright Teal Blue (appbar right edge)
 
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final cartProvider = Provider.of<CartProvider>(context);
@@ -234,9 +373,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _selectedIndex == 0
               ? _buildHomeTab(authProvider, cartProvider)
               : _selectedIndex == 1
-                  ? const TestsScreen()
+                  ? TestsScreen(
+                      initialCategory: _initialTestCategory,
+                      initialGender: _initialTestGender,
+                      initialOrgan: _initialTestOrgan,
+                      key: ValueKey('tests-$_initialTestCategory-$_initialTestGender-$_initialTestOrgan'),
+                    )
                   : _selectedIndex == 2
-                      ? const PackagesScreen()
+                      ? PackagesScreen(
+                          initialCategory: _initialPkgCategory,
+                          initialGender: _initialPkgGender,
+                          initialOrgan: _initialPkgOrgan,
+                          key: ValueKey('pkgs-$_initialPkgCategory-$_initialPkgGender-$_initialPkgOrgan'),
+                        )
                       : const ProfileScreen(),
           
           // Bottom area blur (Pinned) - exactly behind the bottom bar zone
@@ -285,8 +434,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                _gradStart.withOpacity(0.4),
-                _gradMid.withOpacity(0.4),
+                _gradStart.withOpacity(0.85),
+                _gradMid.withOpacity(0.85),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -342,15 +491,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             style: TextButton.styleFrom(
               backgroundColor: Colors.white.withOpacity(0.2),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            ),
+            child: const Text('Login', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
-          child: const Text('Login', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
         ),
-      ),
-    );
+      );
+    }
+    return const SizedBox.shrink();
   }
-  return const SizedBox.shrink();
-}
 
   Widget _buildLocationDropdown() {
     return InkWell(
@@ -369,9 +518,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   children: [
                     const Icon(Icons.location_on, color: Colors.white, size: 12),
                     const SizedBox(width: 2),
-                    Text(
-                      _currentCity ?? 'Detecting...',
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 100),
+                      child: Text(
+                        _currentCity ?? 'Detecting...',
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
                     const Icon(Icons.arrow_drop_down, color: Colors.white, size: 16),
                   ],
@@ -437,15 +591,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       if (data.isNotEmpty) {
                         final addr = data[0]['address'] as Map<String, dynamic>;
                         final city = addr['city'] ?? addr['town'] ?? addr['village'] ?? addr['county'] ?? addr['state_district'] ?? 'Unknown';
+                        final double? newLat = data[0]['lat'] != null ? double.parse(data[0]['lat'].toString()) : null;
+                        final double? newLng = data[0]['lon'] != null ? double.parse(data[0]['lon'].toString()) : null;
+
                         setDialogState(() => error = null);
-                        if (mounted) {
-                          setState(() {
-                            _currentCity = city;
-                            _currentPincode = val;
-                          });
-                        }
-                        Navigator.pop(ctx);
-                        AppToast.show(context, 'Location updated to $city', type: ToastType.success);
+                          if (mounted) {
+                            setState(() {
+                              _currentCity = city;
+                              _currentPincode = val;
+                              if (newLat != null) _userLat = newLat;
+                              if (newLng != null) _userLng = newLng;
+                            });
+                            // Fetch new labs for this new pincode location
+                            if (newLat != null && newLng != null) {
+                              _fetchNearbyLabs(newLat, newLng);
+                            }
+                          }
+                          // Save to cache
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setString('cached_city', city);
+                          await prefs.setString('cached_pincode', val);
+                          if (newLat != null) await prefs.setDouble('cached_lat', newLat);
+                          if (newLng != null) await prefs.setDouble('cached_lng', newLng);
+                          
+                          Navigator.pop(ctx);
+                          AppToast.show(context, 'Location updated to $city', type: ToastType.success);
                       } else {
                         setDialogState(() => error = 'Invalid Pincode');
                       }
@@ -495,7 +665,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+            border: Border.all(color: const Color(0xFF303030).withOpacity(0.15), width: 1.0),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -533,7 +703,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   final item = items[index];
                   return GestureDetector(
                     onTap: () {
-                      setState(() => _selectedIndex = index);
+                      setState(() {
+                        _selectedIndex = index;
+                        // Reset filters when manually switching tabs for a fresh view
+                        _initialTestCategory = null;
+                        _initialTestGender = null;
+                        _initialTestOrgan = null;
+                        _initialPkgCategory = null;
+                        _initialPkgGender = null;
+                        _initialPkgOrgan = null;
+                      });
                       if (index == 0) _loadHistory(); // Refresh history when coming back to home
                     },
                     behavior: HitTestBehavior.opaque,
@@ -671,7 +850,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -686,6 +864,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             _buildTestExplorerBanner(),
             if (_browsedItems.isNotEmpty) _buildPreviouslyBrowsedSection(),
             _buildVitalOrgansSection(),
+            _buildLabsDiscoveryCard(),
+            _buildTopLabsSection(),
             _buildPromoBannerCarousel(),
             _buildRecommendedCheckupsSection(),
             _buildBookingProcessSection(),
@@ -735,7 +915,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ],
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => _navToTests(),
                 child: const Text('View All', style: TextStyle(color: _gradEnd, fontWeight: FontWeight.bold, fontSize: 13)),
               ),
             ],
@@ -749,11 +929,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               itemCount: concerns.length,
               itemBuilder: (context, index) {
                 final concern = concerns[index];
-                return Container(
-                  width: 90,
-                  margin: const EdgeInsets.only(right: 16),
-                  child: Column(
-                    children: [
+                return GestureDetector(
+                  onTap: () {
+                    final name = (concern['name'] as String).replaceAll('\n', ' ');
+                    _navToTests(category: name);
+                  },
+                  child: Container(
+                    width: 90,
+                    margin: const EdgeInsets.only(right: 16),
+                    child: Column(
+                      children: [
                       Container(
                         width: 80,
                         height: 80,
@@ -769,7 +954,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           child: Image.asset(
                             concern['image'] as String,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, _, __) => Center(
+                            errorBuilder: (context, _, _) => Center(
                               child: Icon(Icons.medical_services_outlined, color: _gradEnd.withOpacity(0.3), size: 30),
                             ),
                           ),
@@ -780,15 +965,150 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         concern['name'] as String,
                         style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87, height: 1.2),
                         textAlign: TextAlign.center,
-                        maxLines: 2,
                       ),
                     ],
                   ),
-                );
-              },
+                ),
+              );
+            },
+          ),
+        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabsDiscoveryCard() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const LabsScreen()));
+        },
+        child: Container(
+          height: 180,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: _gradEnd.withOpacity(0.2),
+                blurRadius: 25,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: Stack(
+              children: [
+                // 1. BASE SOLID GRADIENT
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF023E8A).withOpacity(0.8),
+                          const Color(0xFF48CAE4).withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 2. LIVE FADING MAP OVERLAY
+                if (_userLat != null && _userLng != null)
+                  Positioned.fill(
+                    child: ShaderMask(
+                      shaderCallback: (rect) {
+                        return const LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [Colors.transparent, Colors.black],
+                          stops: [0.2, 0.95],
+                        ).createShader(rect);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: Opacity(
+                        opacity: 0.35,
+                        child: AbsorbPointer(
+                          child: FlutterMap(
+                            key: ValueKey('bg-map-$_userLat-$_userLng'),
+                            options: MapOptions(
+                              initialCenter: LatLng(_userLat!, _userLng!),
+                              initialZoom: 14.0,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.healthocean.app',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                // CONTENT
+                Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white24,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white30),
+                              ),
+                              child: const Text(
+                                'MAP INTEGRATED',
+                                style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Nearby Labs\nDiscovery',
+                              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, height: 1.1, letterSpacing: -0.5),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Find certified diagnostic centers around you on an interactive map.',
+                              style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                              maxLines: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      // FLOATING 3D-ISH ICON
+                      Container(
+                        width: 64, height: 64,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 8)),
+                          ],
+                        ),
+                        child: const Icon(Icons.map_rounded, color: _gradEnd, size: 32),
+                      ),
+                    ],
+                  ),
+                ),
+                // PULSE ANIMATION INDICATOR (Subtle)
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -906,10 +1226,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Offers and Deals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: -0.6, color: Color(0xFF1E293B))),
+                SizedBox(height: 4),
+                Text('Checkout exclusive Offers & Deals', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
           SizedBox(
             height: carouselH,
             child: Listener(
@@ -928,9 +1260,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     animation: _promoController,
                     builder: (context, child) {
                       double value = 1.0;
-                      if (_promoController.position.haveDimensions) {
-                        value = (_promoController.page! - index);
-                        value = (1 - (value.abs() * 0.1)).clamp(0.0, 1.0);
+                      if (_promoController.hasClients && _promoController.position.haveDimensions) {
+                        try {
+                          value = (_promoController.page! - index);
+                          value = (1 - (value.abs() * 0.1)).clamp(0.0, 1.0);
+                        } catch (_) {}
                       }
                       return Transform.scale(
                         scale: Curves.easeOut.transform(value),
@@ -954,7 +1288,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             child: Image.asset(
                               promos[promoIndex],
                               fit: BoxFit.cover,
-                              errorBuilder: (context, _, __) => Container(
+                              errorBuilder: (context, _, _) => Container(
                                 color: _gradEnd.withOpacity(0.1),
                                 child: const Icon(Icons.broken_image_outlined, color: _gradEnd),
                               ),
@@ -1024,36 +1358,39 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             itemCount: organs.length,
             itemBuilder: (context, index) {
               final organ = organs[index];
-              return Column(
-                children: [
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          organ['image'] as String,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, _, __) => Container(
-                            decoration: BoxDecoration(color: (organ['color'] as Color).withOpacity(0.3), shape: BoxShape.circle),
-                            child: Icon(Icons.favorite_outline, color: _gradEnd.withOpacity(0.5), size: 20),
+              return GestureDetector(
+                onTap: () => _navToTests(organ: organ['name'] as String),
+                child: Column(
+                  children: [
+                    AspectRatio(
+                      aspectRatio: 1,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            organ['image'] as String,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, _, _) => Container(
+                              decoration: BoxDecoration(color: (organ['color'] as Color).withOpacity(0.3), shape: BoxShape.circle),
+                              child: Icon(Icons.favorite_outline, color: _gradEnd.withOpacity(0.5), size: 20),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(organ['name'] as String, 
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87), 
-                    textAlign: TextAlign.center),
-                ],
+                    const SizedBox(height: 8),
+                    Text(organ['name'] as String, 
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87), 
+                      textAlign: TextAlign.center),
+                  ],
+                ),
               );
             },
           ),
@@ -1099,28 +1436,34 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             clipBehavior: Clip.none,
-            itemCount: 3,
+            itemCount: 4,
             itemBuilder: (context, index) {
+              final gender = title.contains('Men') ? 'Male' : 'Female';
               if (index == 3) {
-                return Container(
-                  width: 120,
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: accent.withOpacity(0.2), width: 1.5),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.add_shopping_cart_rounded, color: accent, size: 32),
-                      const SizedBox(height: 8),
-                      Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: accent)),
-                    ],
+                return GestureDetector(
+                  onTap: () => _navToPackages(gender: gender),
+                  child: Container(
+                    width: 120,
+                    margin: const EdgeInsets.only(right: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: accent.withOpacity(0.2), width: 1.5),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_shopping_cart_rounded, color: accent, size: 32),
+                        const SizedBox(height: 8),
+                        Text('View All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: accent)),
+                      ],
+                    ),
                   ),
                 );
               }
-              return Container(
+              return GestureDetector(
+                onTap: () => _navToPackages(gender: gender),
+                child: Container(
                 width: 130,
                 margin: const EdgeInsets.only(right: 16),
                 decoration: BoxDecoration(
@@ -1155,7 +1498,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(32),
-                                  child: Image.asset(images[index], fit: BoxFit.cover, errorBuilder: (context, _, __) => Icon(Icons.person_3_outlined, color: accent, size: 28)),
+                                  child: Image.asset(images[index], fit: BoxFit.cover, errorBuilder: (context, _, _) => Icon(Icons.person_3_outlined, color: accent, size: 28)),
                                 ),
                               ),
                               Container(
@@ -1174,7 +1517,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         child: Icon(Icons.favorite, color: accent.withOpacity(0.06), size: 100),
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -1222,7 +1566,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Icon(Icons.auto_graph_rounded, color: _gradEnd, size: 24),
@@ -1804,6 +2148,208 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
       ),
     );
+  }
+   Widget _buildTopLabsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Top Labs Near You', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                  SizedBox(height: 2),
+                  Text('Highly rated diagnostic centers in your area', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 140,
+          child: _isLabsLoading 
+            ? _buildTopLabsSkeleton() 
+            : (_nearbyLabs.isEmpty ? _buildTopLabsEmpty() : _buildTopLabsList()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopLabsSkeleton() {
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      itemCount: 3,
+      itemBuilder: (context, _) => Container(
+        width: MediaQuery.of(context).size.width * 0.88,
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopLabsEmpty() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
+            child: Icon(Icons.info_outline_rounded, color: Colors.blue.shade400),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('No curated labs here yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B))),
+                SizedBox(height: 2),
+                Text('We are arriving in your area soon!', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopLabsList() {
+    final topLabs = _nearbyLabs.take(10).toList();
+    _startTopLabsTimer();
+
+    return MouseRegion(
+      onEnter: (_) => _isTopLabsInteracting = true,
+      onExit: (_) => _isTopLabsInteracting = false,
+      child: PageView.builder(
+        controller: _topLabsController,
+        onPageChanged: (i) => setState(() {
+          _currentTopLabRawPage = i;
+          if (topLabs.isNotEmpty) {
+            _currentTopLabPage = i % topLabs.length;
+          }
+        }),
+        itemCount: 10000,
+        itemBuilder: (context, index) {
+          final lab = topLabs[index % topLabs.length];
+          return AnimatedBuilder(
+            animation: _topLabsController,
+            builder: (context, child) {
+              double value = 1.0;
+              if (_topLabsController.position.haveDimensions) {
+                value = (_topLabsController.page! - index);
+                value = (1 - (value.abs() * 0.08)).clamp(0.9, 1.0);
+              }
+              return Transform.scale(scale: value, child: child);
+            },
+            child: GestureDetector(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LabDetailScreen(lab: lab))),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF023E8A).withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8)),
+                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 72, height: 72,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0F9FF),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFF0077B6).withOpacity(0.08)),
+                          ),
+                          child: const Center(child: Icon(Icons.science_rounded, color: Color(0xFF0077B6), size: 34)),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(lab['name'] ?? '', 
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, letterSpacing: -0.6, color: Color(0xFF1E293B)), 
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(6)),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.star_rounded, color: Colors.amber[600], size: 12),
+                                        const Text(' 4.9', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF92400E))),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(_getDistanceString(lab), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blueGrey.shade400)),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text('${lab['city'] ?? ''} • Verified Laboratory', 
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Colors.grey.shade400, letterSpacing: 0.1)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(color: const Color(0xFF0077B6).withOpacity(0.06), shape: BoxShape.circle),
+                          child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF0077B6), size: 20),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+
+
+  String _getDistanceString(dynamic lab) {
+    if (_userLat == null || _userLng == null) return 'Distance N/A';
+    final coords = lab['location']?['coordinates'] as List?;
+    if (coords == null) return 'Distance N/A';
+    
+    final double labLat = coords[1].toDouble();
+    final double labLng = coords[0].toDouble();
+    
+    const Distance distance = Distance();
+    final double directKm = distance.as(LengthUnit.Kilometer, LatLng(_userLat!, _userLng!), LatLng(labLat, labLng));
+    final double roadKm = directKm * 1.3;
+    
+    if (roadKm < 1) return '${(roadKm * 1000).round()}m away';
+    return '${roadKm.toStringAsFixed(1)} km away';
   }
 }
 

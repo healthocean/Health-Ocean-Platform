@@ -7,13 +7,39 @@ const router = Router();
 // GET /api/tests - Get all active tests from approved labs, with lab name
 router.get('/', async (req, res) => {
   try {
-    const { search, category, sort } = req.query;
+    const { search, category, gender, organ, sort, lat, lng, radius, pincode } = req.query;
+    const radKm = parseFloat(radius as string) || 50;
 
     let sortObj: any = { createdAt: -1 };
     if (sort === 'price_asc') sortObj = { price: 1 };
     if (sort === 'price_desc') sortObj = { price: -1 };
 
-    const approvedLabs = await Lab.find({ status: 'Approved' }).select('labId name city');
+    console.log(`[TESTS] Query: lat=${lat}, lng=${lng}, pincode=${pincode}, radius=${radKm}, organ=${organ}, gender=${gender}`);
+    console.log(`[PACKAGES] Query: lat=${lat}, lng=${lng}, pincode=${pincode}, radius=${radKm}`);
+
+    let labQuery: any = { status: 'Approved' };
+
+    // Distance-based filtering
+    if (lat && lng) {
+      console.log(`[TESTS] Using distance-based filter`);
+      console.log(`[PACKAGES] Using distance-based filter`);
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+      labQuery.location = {
+        $geoWithin: {
+          $centerSphere: [[longitude, latitude], radKm / 6378.1]
+        }
+      };
+    } else if (pincode) {
+      console.log(`[TESTS] Using pincode-based filter: ${pincode}`);
+      console.log(`[PACKAGES] Using pincode-based filter: ${pincode}`);
+      labQuery.pincode = pincode;
+    }
+
+    const approvedLabs = await Lab.find(labQuery).select('labId name city');
+    console.log(`[TESTS] Found ${approvedLabs.length} approved labs`);
+    console.log(`[PACKAGES] Found ${approvedLabs.length} approved labs`);
+    
     const approvedLabIds = approvedLabs.map(l => l.labId);
     const labMap = new Map(approvedLabs.map(l => [l.labId, { name: l.name, city: l.city }]));
 
@@ -28,6 +54,14 @@ router.get('/', async (req, res) => {
 
     if (category && category !== 'All' && typeof category === 'string') {
       query.category = category;
+    }
+
+    if (gender && typeof gender === 'string' && gender !== 'Both') {
+      query.gender = { $in: [gender, 'Both'] };
+    }
+
+    if (organ && typeof organ === 'string') {
+      query.organ = organ;
     }
 
     const page = parseInt(req.query.page as string) || 1;
