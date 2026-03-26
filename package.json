@@ -1,0 +1,44 @@
+{
+  "name": "health-ocean",
+  "version": "1.0.0",
+  "description": "Health Ocean - Lab test booking platform for India's top 20 cities",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "type-check": "turbo type-check",
+    "clean": "turbo clean",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "db:migrate": "turbo db:migrate",
+    "db:seed": "turbo db:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  },
+  "packageManager": "pnpm@8.0.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "keywords": [
+    "healthcare",
+    "diagnostics",
+    "lab-tests",
+    "booking",
+    "india"
+  ],
+  "author": "Health Ocean Team",
+  "license": "MIT"
+}

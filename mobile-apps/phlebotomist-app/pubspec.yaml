@@ -1,0 +1,33 @@
+name: health_ocean_phlebotomist
+description: "Phlebotomist app for Health Ocean sample collectors."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.0
+  shared_preferences: ^2.2.2
+  provider: ^6.1.1
+  intl: ^0.19.0
+  flutter_svg: ^2.0.9
+  flutter_secure_storage: ^9.0.0
+  geolocator: ^13.0.2
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  url_launcher: ^6.3.2
+  path_provider: ^2.1.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
