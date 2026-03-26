@@ -22,7 +22,7 @@ export default function LabLoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/labs/login', {
+      const response = await fetch('http://10.29.34.207:4000/api/labs/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

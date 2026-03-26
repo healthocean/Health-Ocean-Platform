@@ -57,4 +57,18 @@ class ApiService {
     }
     throw Exception('Failed to update status: ${response.statusCode}');
   }
+
+  static Future<Map<String, dynamic>> getLabInfo(String labId) async {
+    final response = await http
+        .get(
+          Uri.parse('${ApiConstants.labInfo}/$labId'),
+          headers: _getHeaders(),
+        )
+        .timeout(_timeout);
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    throw Exception('Failed to load lab info: ${response.statusCode}');
+  }
 }

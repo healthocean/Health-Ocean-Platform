@@ -67,7 +67,7 @@ export default function LabRegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/labs/register', {
+      const response = await fetch('http://10.29.34.207:4000/api/labs/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

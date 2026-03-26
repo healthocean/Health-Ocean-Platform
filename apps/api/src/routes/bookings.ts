@@ -105,8 +105,44 @@ router.get('/:id', async (req, res) => {
         message: 'Booking not found',
       });
     }
+
+    // Enrich with test and package names
+    const testIds = booking.testIds || [];
+    const packageIds = booking.packageIds || [];
+
+    let tests: any[] = [];
+    let packages: any[] = [];
+
+    if (testIds.length > 0) {
+      tests = await LabTest.find({
+        $or: [
+          { testId: { $in: testIds } },
+          { _id: { $in: testIds.filter(id => id.length === 24) } }
+        ]
+      }, 'testId name');
+    }
+
+    if (packageIds.length > 0) {
+      packages = await LabPackage.find({
+        $or: [
+          { packageId: { $in: packageIds } },
+          { _id: { $in: packageIds.filter(id => id.length === 24) } }
+        ]
+      }, 'packageId name');
+    }
+
+    const testMap = new Map<string, string>();
+    tests.forEach(t => { testMap.set(t.testId, t.name); testMap.set(t._id.toString(), t.name); });
+    const packageMap = new Map<string, string>();
+    packages.forEach(p => { packageMap.set(p.packageId, p.name); packageMap.set(p._id.toString(), p.name); });
+
+    const enrichedBooking = {
+      ...booking.toObject(),
+      tests: (booking.testIds || []).map(id => testMap.get(id) || id),
+      packages: (booking.packageIds || []).map(id => packageMap.get(id) || id),
+    };
     
-    res.json({ success: true, booking });
+    res.json({ success: true, booking: enrichedBooking });
   } catch (error) {
     console.error('Get booking error:', error);
     res.status(500).json({
@@ -204,6 +240,48 @@ router.patch('/:id/cancel', async (req, res) => {
     });
   } catch (error) {
     console.error('Cancel booking error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+});
+
+// PATCH /api/bookings/:id/journey - Update journey status and location
+router.patch('/:id/journey', async (req, res) => {
+  try {
+    const { journeyStarted, phlebotomistLocation } = req.body;
+    const booking = await Booking.findOne({ bookingId: req.params.id });
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+
+    if (journeyStarted !== undefined) {
+      booking.journeyStarted = journeyStarted;
+      if (journeyStarted && !booking.journeyStartedAt) {
+        booking.journeyStartedAt = new Date();
+      }
+    }
+
+    if (phlebotomistLocation) {
+      booking.phlebotomistLocation = {
+        type: 'Point',
+        coordinates: phlebotomistLocation.coordinates,
+      };
+    }
+
+    await booking.save();
+    
+    res.json({
+      success: true,
+      booking,
+    });
+  } catch (error) {
+    console.error('Update journey error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

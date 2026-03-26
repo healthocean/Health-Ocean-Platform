@@ -100,7 +100,13 @@ export default function Sidebar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`hidden lg:flex flex-col bg-gray-900 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'} h-full flex-shrink-0`}>
+      <aside className={`hidden lg:flex flex-col bg-gray-900 transition-all duration-300 ${collapsed ? 'w-16' : 'w-60'} min-h-screen sticky top-0 flex-shrink-0`}>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-6 w-6 h-6 bg-gray-700 hover:bg-gray-600 rounded-full flex items-center justify-center text-white z-10 transition-colors"
+        >
+          {collapsed ? <Menu className="w-3 h-3" /> : <X className="w-3 h-3" />}
+        </button>
         <SidebarContent />
       </aside>
 

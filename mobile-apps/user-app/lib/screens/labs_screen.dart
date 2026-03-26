@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_map/flutter_map.dart';
+import '../widgets/shimmer_placeholder.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import '../services/api_service.dart';
 import '../utils/constants.dart';
@@ -497,11 +498,15 @@ class _LabsScreenState extends State<LabsScreen> with TickerProviderStateMixin {
                           ),
                           // List of Labs
                           if (_isLoading && _nearbyLabs.isEmpty)
-                            const SliverFillRemaining(
-                              child: Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(bottom: 100),
-                                  child: CircularProgressIndicator(),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: ShimmerPlaceholder.rounded(height: 100, borderRadius: 20),
+                                  ),
+                                  childCount: 5,
                                 ),
                               ),
                             )

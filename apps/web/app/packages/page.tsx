@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { Search, Package, MapPin, ShoppingCart, Trash2 } from 'lucide-react';
+import { Search, Package, MapPin, ShoppingCart, Trash2, PackageCheck, Info } from 'lucide-react';
 import { addToCart, removeFromCart, getCart } from '@/lib/cart';
+import { useLocation } from '@/contexts/LocationContext';
 
 interface LabPackage {
   id: string;
@@ -24,6 +25,7 @@ interface LabPackage {
 
 export default function PackagesPage() {
   const router = useRouter();
+  const { location: currentLocation } = useLocation();
   const [packages, setPackages] = useState<LabPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -43,11 +45,11 @@ export default function PackagesPage() {
 
   useEffect(() => {
     fetchPackages(true);
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, currentLocation]);
 
   useEffect(() => {
     if (page > 1) fetchPackages(false);
-  }, [page]);
+  }, [page, currentLocation]);
 
   const fetchPackages = async (reset = false) => {
     if (reset) {
@@ -61,16 +63,26 @@ export default function PackagesPage() {
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (selectedCategory !== 'All') params.set('category', selectedCategory);
+      
+      // Location Filtering
+      if (currentLocation?.lat && currentLocation?.lng) {
+        params.set('lat', currentLocation.lat.toString());
+        params.set('lng', currentLocation.lng.toString());
+      } else if (currentLocation?.pincode) {
+        params.set('pincode', currentLocation.pincode);
+      }
+      params.set('radius', '50');
+
       params.set('page', reset ? '1' : page.toString());
       params.set('limit', '10');
 
-      const res = await fetch(`http://localhost:4000/api/packages?${params}`);
+      const res = await fetch(`http://10.29.34.207:4000/api/packages?${params}`);
       const data = await res.json();
       setPackages(prev => reset ? (data.packages ?? []) : [...prev, ...(data.packages ?? [])]);
       setTotalPages(data.totalPages ?? 1);
 
       if (categories.length === 1) {
-        const catRes = await fetch('http://localhost:4000/api/packages/meta/categories');
+        const catRes = await fetch('http://10.29.34.207:4000/api/packages/meta/categories');
         const catData = await catRes.json();
         setCategories(['All', ...(catData.categories ?? [])]);
       }
@@ -87,34 +99,50 @@ export default function PackagesPage() {
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero */}
-        <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl p-8 text-white mb-8">
-          <h1 className="text-4xl font-bold mb-2">Health Packages</h1>
-          <p className="text-xl text-primary-100">Comprehensive health checkups from verified labs</p>
+        {/* Hero Section */}
+        <div className="relative overflow-hidden bg-gray-900 rounded-[40px] p-10 text-white mb-10 group shadow-2xl">
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-xs font-black tracking-widest uppercase mb-4">
+              <PackageCheck className="w-3.5 h-3.5 text-primary-400" />
+              Verified Health Packages
+            </div>
+            <h1 className="text-5xl font-black mb-4 tracking-tighter leading-[0.9]">
+              Comprehensive <br />
+              <span className="text-primary-400">Health Checkups</span>
+            </h1>
+            <p className="text-gray-400 text-lg font-medium leading-relaxed mb-8">
+              Full body profiles and specialized packages from certified laboratories nearby, delivered at your doorstep.
+            </p>
+          </div>
+          <div className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-l from-primary-600/20 to-transparent pointer-events-none" />
+          <Package className="absolute -bottom-10 -right-10 w-64 h-64 text-white/5 rotate-12" />
         </div>
 
-        {/* Search */}
-        <div className="mb-6 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search for packages..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-500"
-          />
+        {/* Search & Location Info */}
+        <div className="mb-6 flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-300" />
+            <input
+              type="text"
+              placeholder="Search for health packages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-16 pr-6 py-5 bg-white border-none rounded-3xl shadow-sm focus:ring-4 focus:ring-primary-100 transition-all font-black text-gray-900 placeholder:text-gray-300 text-lg"
+            />
+          </div>
         </div>
 
         {/* Category Filter */}
-        <div className="mb-8 flex gap-3 overflow-x-auto pb-2">
+        <div className="mb-10 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full whitespace-nowrap text-sm transition ${selectedCategory === cat
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-                }`}
+              className={`px-8 py-3 rounded-full whitespace-nowrap text-sm font-black tracking-wider transition-all duration-300 ${
+                selectedCategory === cat
+                  ? 'bg-primary-600 text-white shadow-xl shadow-primary-200 scale-105'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 hover:shadow-md'
+              }`}
             >
               {cat}
             </button>
@@ -124,16 +152,16 @@ export default function PackagesPage() {
         {/* Results */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-100 border-t-primary-600" />
           </div>
         ) : packages.length === 0 ? (
-          <div className="text-center py-20">
-            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">No packages available yet.</p>
-            <p className="text-gray-400 text-sm mt-1">Labs are adding packages — check back soon.</p>
+          <div className="text-center py-20 bg-white rounded-[40px] shadow-sm border-2 border-dashed border-gray-100 p-12">
+            <Package className="w-20 h-20 text-gray-100 mx-auto mb-6" />
+            <p className="text-gray-900 text-2xl font-black tracking-tight">No Packages Found</p>
+            <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto">We couldn't find any health packages within 50km of your current location. Please try a different area.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {packages.map((pkg) => {
               const inCart = cart.includes(pkg.id);
               const discount = pkg.originalPrice
@@ -141,44 +169,48 @@ export default function PackagesPage() {
                 : 0;
 
               return (
-                <div key={pkg.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition flex flex-col">
+                <div key={pkg.id} className="bg-white rounded-[40px] shadow-sm border border-gray-100 p-8 hover:shadow-2xl transition-all duration-500 flex flex-col group relative overflow-hidden">
+                  {discount > 0 && (
+                    <div className="absolute top-0 right-0">
+                      <div className="bg-green-500 text-white text-[10px] font-black px-6 py-2 rotate-45 translate-x-3 translate-y-[-2px] origin-center shadow-md">
+                        {discount}% OFF
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex-1">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">{pkg.name}</h3>
+                    <div className="flex items-center gap-2 text-primary-600 font-black text-[10px] tracking-widest uppercase mb-4">
+                      <div className="w-2 h-2 rounded-full bg-primary-600 animate-pulse" />
+                      {pkg.category}
+                    </div>
 
-                    {/* Lab name */}
-                    <p className="text-xs text-primary-600 font-medium mb-2 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {pkg.labName}{pkg.labCity ? `, ${pkg.labCity}` : ''}
-                    </p>
+                    <h3 className="text-xl font-black text-gray-900 mb-2 leading-[1.1] group-hover:text-primary-600 transition-colors h-14 line-clamp-2">{pkg.name}</h3>
 
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{pkg.description}</p>
+                    <div className="flex items-center gap-2 mb-6 text-gray-400">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-xs font-bold truncate tracking-tight">{pkg.labName}{pkg.labCity ? `, ${pkg.labCity}` : ''}</span>
+                    </div>
 
-                    <div className="flex items-baseline gap-2 mb-3">
-                      <span className="text-2xl font-bold text-gray-900">₹{pkg.price}</span>
+                    <div className="flex items-baseline gap-2 mb-6">
+                      <span className="text-3xl font-black text-gray-900 tracking-tighter underline decoration-primary-200 decoration-4 underline-offset-4">₹{pkg.price}</span>
                       {pkg.originalPrice && (
-                        <span className="text-sm text-gray-400 line-through">₹{pkg.originalPrice}</span>
-                      )}
-                      {discount > 0 && (
-                        <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
-                          {discount}% OFF
-                        </span>
+                        <span className="text-sm text-gray-300 line-through font-bold italic">₹{pkg.originalPrice}</span>
                       )}
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-3 font-medium">
-                      {pkg.testsIncluded?.length ?? 0} tests included
-                    </p>
-
-                    <div className="space-y-1 mb-4">
-                      {(pkg.features ?? []).slice(0, 4).map((f, i) => (
-                        <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                          <span className="text-green-600">✓</span>
-                          <span>{f}</span>
-                        </div>
-                      ))}
-                      {(pkg.features ?? []).length > 4 && (
-                        <p className="text-sm text-primary-500">+{pkg.features.length - 4} more</p>
-                      )}
+                    <div className="bg-gray-50 rounded-3xl p-5 mb-8">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center justify-between">
+                        Tests Included
+                        <span className="bg-white text-gray-900 px-2.5 py-1 rounded-full text-[12px] shadow-sm">{pkg.testsIncluded?.length ?? 0}</span>
+                      </p>
+                      <div className="space-y-2">
+                        {(pkg.features ?? []).slice(0, 3).map((f, i) => (
+                          <div key={i} className="flex items-center gap-3 text-sm text-gray-600 group-hover:translate-x-1 transition-transform">
+                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-[10px]">✓</div>
+                            <span className="font-bold text-xs truncate uppercase tracking-tighter opacity-80">{f}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -199,14 +231,14 @@ export default function PackagesPage() {
                         });
                       }
                     }}
-                    className={`w-full py-2.5 mt-2 rounded-lg font-medium transition text-sm flex items-center justify-center gap-2 ${
+                    className={`w-full py-5 rounded-[24px] font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-sm ${
                       inCart
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                        : 'bg-primary-500 text-white hover:bg-primary-600'
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border-2 border-red-100'
+                        : 'bg-gray-900 text-white hover:bg-black hover:shadow-xl hover:translate-y-[-2px]'
                     }`}
                   >
                     {inCart ? <Trash2 className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-                    {inCart ? 'Remove from Cart' : 'Add to Cart'}
+                    {inCart ? 'REMOVE PACKAGE' : 'BOOK PACKAGE'}
                   </button>
                 </div>
               );
@@ -214,17 +246,31 @@ export default function PackagesPage() {
           </div>
         )}
 
+        {/* Load More */}
         {!loading && page < totalPages && (
-          <div className="mt-10 flex justify-center">
+          <div className="mt-16 flex justify-center">
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={loadingMore}
-              className="px-8 py-3 border-2 border-primary-500 text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition disabled:opacity-70 disabled:cursor-not-allowed"
+              className="px-12 py-5 bg-white shadow-xl shadow-gray-100 text-gray-900 font-black text-xs tracking-[0.3em] uppercase rounded-full hover:bg-gray-900 hover:text-white transition-all transform hover:scale-105"
             >
-              {loadingMore ? 'Loading more packages...' : 'Load More Packages'}
+              {loadingMore ? 'Loading...' : 'Discover More'}
             </button>
           </div>
         )}
+
+        {/* Info Banner */}
+        <div className="mt-20 flex items-center gap-6 p-8 bg-blue-50/50 rounded-[40px] border-2 border-dashed border-blue-100">
+           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-blue-600">
+              <Info className="w-8 h-8" />
+           </div>
+           <div>
+             <h4 className="text-lg font-black text-blue-900 mb-1">Personalized Laboratory Network</h4>
+             <p className="text-sm text-blue-700 font-medium opacity-80 max-w-2xl">
+               Results are filtered within a 50km radius of your current location to ensure rapid home sample collection and timely report generation. Change your location above to explore labs in different areas.
+             </p>
+           </div>
+        </div>
       </div>
 
       <Footer />

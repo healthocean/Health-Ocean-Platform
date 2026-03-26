@@ -395,7 +395,7 @@ class _UnauthenticatedView extends StatelessWidget {
                       child: child,
                     );
                   },
-                  child: Image.asset('assets/logo.jpeg', height: 110, fit: BoxFit.contain),
+                  child: Image.asset('assets/healthoceanlogo.png', height: 110, fit: BoxFit.contain),
                 ),
                 const SizedBox(height: 12),
                 const Text(

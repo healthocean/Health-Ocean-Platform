@@ -5,6 +5,8 @@ import 'providers/auth_provider.dart';
 import 'providers/booking_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/main_navigation_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(
@@ -41,7 +43,7 @@ class _HealthOceanPhlebotomistAppState extends State<HealthOceanPhlebotomistApp>
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Health Ocean Phlebotomist',
+      title: 'HO Phlebotomist',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -66,24 +68,13 @@ class _HealthOceanPhlebotomistAppState extends State<HealthOceanPhlebotomistApp>
         future: _authFuture,
         builder: (ctx, authResult) {
           if (authResult.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.health_and_safety, size: 80, color: ApiConstants.oceanEnd),
-                    SizedBox(height: 20),
-                    CircularProgressIndicator(),
-                  ],
-                ),
-              ),
-            );
+            return const SplashScreen();
           }
           
           return Consumer<AuthProvider>(
             builder: (ctx, auth, _) {
               return auth.isAuthenticated
-                  ? const DashboardScreen()
+                  ? const MainNavigationScreen()
                   : const LoginScreen();
             },
           );

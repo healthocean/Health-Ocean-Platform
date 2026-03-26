@@ -57,8 +57,8 @@ export default function LabDashboardPage() {
   const loadData = async (labId: string) => {
     try {
       const [testsRes, packagesRes] = await Promise.all([
-        fetch(`http://localhost:4000/api/labs/${labId}/tests`),
-        fetch(`http://localhost:4000/api/labs/${labId}/packages`),
+        fetch(`http://10.29.34.207:4000/api/labs/${labId}/tests`),
+        fetch(`http://10.29.34.207:4000/api/labs/${labId}/packages`),
       ]);
 
       const testsData = await testsRes.json();

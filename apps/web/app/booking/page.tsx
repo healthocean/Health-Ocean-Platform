@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Calendar, Clock, MapPin, User, Phone, Mail, ShoppingCart } from 'lucide-react';
 import { getUser, isAuthenticated } from '@/lib/auth';
 import { getCart, clearCart, getCartTotal } from '@/lib/cart';
+import { useLocation } from '@/contexts/LocationContext';
 
 export default function BookingPage() {
   const router = useRouter();
+  const { location } = useLocation();
   const [step, setStep] = useState(1);
   const [user, setUser] = useState<any>(null);
   const [cart, setCart] = useState<any[]>([]);
@@ -129,9 +131,13 @@ export default function BookingPage() {
           couponCode: appliedCoupon?.code || null,
           discount: calculateDiscount(),
           total: getFinalTotal(),
+          userLocation: location?.lat && location?.lng ? {
+            type: 'Point',
+            coordinates: [location.lng, location.lat]
+          } : undefined,
         };
 
-        const response = await fetch('http://10.121.197.207:4000/api/bookings', {
+        const response = await fetch('http://10.29.34.207:4000/api/bookings', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -175,31 +181,31 @@ export default function BookingPage() {
           {/* Circles and connectors */}
           <div className="flex items-center w-full">
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
-              <>
-                <div key={`circle-${s}`} className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0 ${
+              <React.Fragment key={`step-${s}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0 ${
                   step >= s ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
                 }`}>
                   {s}
                 </div>
                 {s < totalSteps && (
-                  <div key={`line-${s}`} className={`flex-1 h-1 ${step > s ? 'bg-primary-500' : 'bg-gray-200'}`} />
+                  <div className={`flex-1 h-1 ${step > s ? 'bg-primary-500' : 'bg-gray-200'}`} />
                 )}
-              </>
+              </React.Fragment>
             ))}
           </div>
           {/* Labels */}
           <div className="flex items-start w-full mt-2">
             {stepLabels.map((label, index) => (
-              <>
-                <div key={`label-${index}`} className="w-10 text-xs text-center shrink-0">
+              <React.Fragment key={`label-wrapper-${index}`}>
+                <div className="w-10 text-xs text-center shrink-0">
                   <span className={step >= index + 1 ? 'text-primary-500 font-medium' : 'text-gray-500'}>
                     {label}
                   </span>
                 </div>
                 {index < totalSteps - 1 && (
-                  <div key={`spacer-${index}`} className="flex-1" />
+                  <div className="flex-1" />
                 )}
-              </>
+              </React.Fragment>
             ))}
           </div>
         </div>}
@@ -242,8 +248,8 @@ export default function BookingPage() {
               </div>
             </div>
             <div className="flex gap-4">
-              <button onClick={() => router.push('/dashboard')} className="btn btn-outline flex-1">
-                View Dashboard
+              <button onClick={() => router.push('/profile')} className="btn btn-outline flex-1">
+                Check Booking in Profile
               </button>
               <button onClick={() => router.push('/')} className="btn btn-primary flex-1">
                 Back to Home
