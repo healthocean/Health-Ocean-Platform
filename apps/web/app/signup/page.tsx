@@ -37,7 +37,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/users/register', {
+      const response = await fetch('http://10.29.34.207:4000/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

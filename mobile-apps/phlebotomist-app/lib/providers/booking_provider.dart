@@ -6,6 +6,8 @@ class BookingProvider with ChangeNotifier {
   bool _isLoading = false;
 
   List<dynamic> get assignedBookings => _assignedBookings;
+  List<dynamic> get activeBookings => _assignedBookings.where((b) => b['status'] != 'Sample Collected').toList();
+  List<dynamic> get completedBookings => _assignedBookings.where((b) => b['status'] == 'Sample Collected').toList();
   bool get isLoading => _isLoading;
 
   Future<void> fetchAssignedBookings(String token, String employeeId) async {

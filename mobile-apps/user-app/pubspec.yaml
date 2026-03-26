@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.1.5
   open_file: ^3.5.11
   flutter_markdown: ^0.7.7+1
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
@@ -56,9 +57,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo_for_app.png"
+  image_path: "assets/healthoceanlogo.png"
   adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/logo_for_app.png"
+  adaptive_icon_foreground: "assets/healthoceanlogo.png"
   remove_alpha_ios: true
   min_sdk_android: 21
 
@@ -74,9 +75,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/logo.jpeg
+    - assets/healthoceanlogo.png
     - assets/body_map_silhouette.png
-    - assets/logo_for_app.png
     - assets/home/
 
   # An image asset can refer to one or more resolution-specific "variants", see

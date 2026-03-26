@@ -31,6 +31,13 @@ export interface IBooking extends Document {
     type: string;
     coordinates: number[];
   };
+  journeyStarted?: boolean;
+  journeyStartedAt?: Date;
+  phlebotomistLocation?: {
+    type: string;
+    coordinates: number[];
+  };
+  collectionOtp?: string;
 }
 
 const bookingSchema = new Schema<IBooking>(
@@ -106,6 +113,26 @@ const bookingSchema = new Schema<IBooking>(
         type: [Number],
         default: [0, 0],
       },
+    },
+    journeyStarted: {
+      type: Boolean,
+      default: false,
+    },
+    journeyStartedAt: Date,
+    phlebotomistLocation: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+      },
+      coordinates: {
+        type: [Number],
+        default: [0, 0],
+      },
+    },
+    collectionOtp: {
+      type: String,
+      default: () => Math.floor(1000 + Math.random() * 9000).toString(),
     },
     cancelledAt: Date,
   },

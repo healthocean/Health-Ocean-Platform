@@ -1,7 +1,10 @@
 'use client';
 
-import { MapPin, ArrowRight, Loader2, Star, Navigation } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { MapPin, ArrowRight, Loader2, Star, Navigation as NavigationIcon, Map as MapIcon } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation } from '@/contexts/LocationContext';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Lab {
   _id: string;
@@ -13,201 +16,182 @@ interface Lab {
 }
 
 export default function NearbyLabs() {
+  const router = useRouter();
+  const { location, detectLocation, isLoading: isDetecting } = useLocation();
   const [labs, setLabs] = useState<Lab[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const fetchNearbyLabs = async (lat: number, lng: number) => {
+  const fetchNearbyLabs = useCallback(async (lat?: number, lng?: number, pincode?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      const res = await fetch(`${apiUrl}/api/labs/nearby/search?lat=${lat}&lng=${lng}&radiusKm=50`);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://10.29.34.207:4000';
+      const params = new URLSearchParams();
+      if (lat && lng) {
+        params.set('lat', lat.toString());
+        params.set('lng', lng.toString());
+      } else if (pincode) {
+        params.set('pincode', pincode);
+      }
+      params.set('radiusKm', '50');
+      
+      const res = await fetch(`${apiUrl}/api/labs/nearby/search?${params}`);
       const data = await res.json();
       if (data.success) {
-        setLabs(data.labs);
+        setLabs(data.labs || []);
       } else {
-        setError(data.message || 'Failed to fetch labs');
+        setError(data.message || 'No labs found in this area');
+        setLabs([]);
       }
     } catch (err) {
       setError('Connection to server failed. Please ensure the API is running.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleGetLocation = () => {
-    if (typeof window === 'undefined' || !navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
-      return;
+  useEffect(() => {
+    if (location) {
+      fetchNearbyLabs(location.lat, location.lng, location.pincode);
     }
-
-    setLoading(true);
-    setPermissionDenied(false);
-    setError(null);
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setLocation({ lat: latitude, lng: longitude });
-        fetchNearbyLabs(latitude, longitude);
-      },
-      (err) => {
-        setLoading(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          setPermissionDenied(true);
-        } else {
-          setError('Failed to detect your location. Please check your system settings.');
-        }
-      },
-      { timeout: 10000 }
-    );
-  };
+  }, [location, fetchNearbyLabs]);
 
   return (
-    <section id="nearby-labs" className="py-16 bg-gradient-to-b from-white to-sky-50/30 overflow-hidden">
+    <section id="nearby-labs" className="py-20 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        {/* Background decorative elements */}
-        <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary-100/20 rounded-full blur-3xl -z-10" />
-        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-sky-200/20 rounded-full blur-3xl -z-10" />
-
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-600 text-sm font-semibold mb-4">
-              <Star className="w-4 h-4 fill-primary-600" />
-              <span>NABL Certified Labs</span>
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+          <div className="max-w-xl text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-[9px] font-black uppercase tracking-[0.2em] mb-4 border border-primary-100">
+              <MapIcon className="w-3 h-3" />
+              <span>DIAGNOSTIC NETWORK</span>
             </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Labs Near You
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter leading-tight">
+              Labs Near <span className="text-primary-600 underline decoration-primary-100 underline-offset-4 decoration-4">{location?.city || 'You'}</span>
             </h2>
-            <p className="text-slate-600 mt-3 text-lg">
-              We've partnered with the best diagnostic centers. Discover certified labs within a <span className="text-primary-600 font-bold">50km</span> radius of your current location.
-            </p>
           </div>
           
-          <button 
-            onClick={handleGetLocation}
-            disabled={loading}
-            className="group relative flex items-center justify-center gap-3 bg-white border-2 border-primary-100 hover:border-primary-500 text-primary-600 px-6 py-3.5 rounded-2xl font-bold shadow-sm hover:shadow-xl hover:shadow-primary-500/10 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Navigation className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            )}
-            <span>{labs.length > 0 ? 'Update Location' : 'Locate Nearby Labs'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={detectLocation}
+              disabled={isDetecting || loading}
+              className="p-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-900 transition-all border border-gray-100 disabled:opacity-50"
+              title="Detect Location"
+            >
+              <NavigationIcon className={`w-4 h-4 ${isDetecting ? 'animate-spin' : ''}`} />
+            </button>
+            <Link 
+              href="/tests"
+              className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-[16px] font-black text-[10px] tracking-widest shadow-lg hover:bg-black transition-all"
+            >
+              EXPLORE ALL
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
-        {permissionDenied && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-300 mb-8 p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-4">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <MapPin className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="font-bold mb-1 font-inter">Location Access Denied</p>
-              <p className="text-sm opacity-90 leading-relaxed font-inter">
-                Please allow browser location permissions to see laboratories in your immediate vicinity. You can also manually search for labs in the search bar above.
-              </p>
-            </div>
-          </div>
-        )}
-
         {error && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-300 mb-8 p-5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-4">
-             <div className="p-2 bg-rose-100 rounded-lg">
-              <Star className="w-5 h-5 text-rose-600" />
+          <div className="p-6 rounded-[28px] bg-red-50 border border-red-100 text-red-800 flex items-center gap-4 max-w-xl mb-8">
+             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+              <MapPin className="w-5 h-5 text-red-500" />
             </div>
             <div>
-              <p className="font-bold mb-1 font-inter">Oops! Something went wrong</p>
-              <p className="text-sm opacity-90 leading-relaxed font-inter">{error}</p>
+              <p className="font-black text-[10px] tracking-tighter uppercase mb-0.5">Location Note</p>
+              <p className="text-[11px] opacity-70 font-bold">{error}</p>
             </div>
           </div>
         )}
 
-        {labs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {labs.map((lab, index) => (
-              <div 
-                key={lab._id} 
-                style={{ animationDelay: `${index * 100}ms` }}
-                className="animate-in fade-in slide-in-from-bottom-8 duration-500 bg-white rounded-3xl border border-slate-100 p-7 hover:border-primary-200 hover:shadow-2xl hover:shadow-primary-500/5 transition-all group cursor-default"
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-primary-500 to-sky-400 p-0.5 shadow-lg group-hover:scale-110 transition-transform">
-                    <div className="h-full w-full bg-white rounded-[14px] flex items-center justify-center">
-                      <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-primary-600 to-sky-500">
-                        {lab.name.charAt(0)}
-                      </span>
+        {/* Horizontal Scroll Layout - Compact */}
+        <div className="relative">
+          <div 
+            ref={scrollRef}
+            className="flex gap-5 overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory px-1 -mx-1"
+          >
+            {labs.length > 0 ? (
+              labs.slice(0, 10).map((lab) => (
+                <div 
+                  key={lab._id} 
+                  onClick={() => router.push(`/labs/${lab._id}`)}
+                  className="min-w-[280px] md:min-w-[320px] snap-center bg-white rounded-[32px] border border-gray-100 p-6 hover:shadow-xl hover:border-primary-100 transition-all duration-500 group relative overflow-hidden flex flex-col justify-between h-[280px] cursor-pointer"
+                >
+                  {/* Local Group Item Decoration */}
+                  <div className="absolute -right-4 -top-4 w-16 h-16 bg-primary-50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 -z-0 pointer-events-none group-hover:scale-150" />
+                  
+                  <div className="relative z-10 w-full">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="h-12 w-12 rounded-2xl bg-gray-900 p-0.5 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                        <div className="h-full w-full bg-white rounded-[14px] flex items-center justify-center">
+                          <span className="text-xl font-black text-gray-900">
+                            {lab.name.charAt(0)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-white border border-gray-100 text-gray-900 text-[9px] font-black shadow-sm group-hover:border-primary-200 transition-all">
+                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                        <span>{lab.rating > 0 ? lab.rating.toFixed(1) : '4.5'}</span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-lg font-black text-gray-900 group-hover:text-primary-600 transition-colors mb-2 truncate tracking-tighter">
+                      {lab.name}
+                    </h3>
+                    
+                    <div className="flex items-start gap-2 text-gray-400">
+                      <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary-500" />
+                      <p className="text-[11px] font-bold line-clamp-2 leading-relaxed uppercase tracking-tighter opacity-80">
+                        {lab.address}, {lab.city}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-amber-50 border border-amber-100 text-amber-700 text-sm font-bold shadow-sm">
-                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                    <span>{lab.rating > 0 ? lab.rating.toFixed(1) : '4.5'}</span>
+
+                  <div className="relative z-10 w-full flex items-center justify-between pt-6 border-t border-gray-50 mt-auto">
+                    <div className="flex flex-col">
+                      <span className="text-[8px] uppercase tracking-widest text-gray-300 font-black mb-0.5">STATUS</span>
+                      <span className="text-[10px] font-black text-gray-900 uppercase italic">Open until 8pm</span>
+                    </div>
+                    <div 
+                      className="h-10 w-10 rounded-xl bg-gray-50 group-hover:bg-primary-600 group-hover:text-white flex items-center justify-center transition-all shadow-sm"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
-
-                <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary-600 transition-colors mb-2 truncate">
-                  {lab.name}
-                </h3>
-                
-                <div className="flex items-start gap-2.5 text-slate-500 mb-6">
-                  <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-slate-400" />
-                  <p className="text-sm line-clamp-2 leading-relaxed font-inter">
-                    {lab.address}, {lab.city}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-0.5">ESTIMATED</span>
-                    <span className="text-sm font-bold text-slate-700">Open 08:00 - 20:00</span>
-                  </div>
-                  <button className="h-10 w-10 rounded-full bg-slate-50 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-all">
-                    <ArrowRight className="w-5 h-5" />
+              ))
+            ) : !loading && !isDetecting && !error && (
+               <div className="w-full text-center py-16 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 flex flex-col items-center">
+                  <MapPin className="w-10 h-10 text-gray-200 mb-4" />
+                  <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Locate Certified Partners</h3>
+                  <button 
+                    onClick={detectLocation}
+                    className="mt-4 bg-gray-900 text-white px-8 py-3 rounded-xl font-black text-[10px] tracking-widest shadow-lg"
+                  >
+                    SCAN MY AREA
                   </button>
+               </div>
+            )}
+
+            {/* Skeleton / Loading */}
+            {(loading || isDetecting) && [1, 2, 3, 4].map((i) => (
+              <div 
+                key={i} 
+                className="min-w-[280px] md:min-w-[320px] h-[280px] bg-white rounded-[32px] border border-gray-100 p-6 animate-pulse flex flex-col justify-between"
+              >
+                <div>
+                  <div className="h-12 w-12 bg-gray-100 rounded-2xl mb-6" />
+                  <div className="h-5 w-3/4 bg-gray-100 rounded-full mb-3" />
+                  <div className="h-4 w-1/2 bg-gray-50 rounded-full" />
                 </div>
+                <div className="h-10 w-full bg-gray-50 rounded-xl" />
               </div>
             ))}
           </div>
-        ) : !loading && !permissionDenied && !error && (
-          <div className="relative group text-center py-24 bg-white rounded-[40px] border-2 border-dashed border-slate-200 hover:border-primary-300 transition-colors shadow-inner overflow-hidden">
-            {/* Visual background for empty state */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-50/50 rounded-full blur-[100px] -z-10" />
-            
-            <div className="relative z-10">
-              <div className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-50 border border-slate-100 mb-6 group-hover:scale-110 transition-transform">
-                <MapPin className="w-10 h-10 text-slate-300" />
-              </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-2 font-inter">Ready to discover nearby labs?</h3>
-              <p className="text-slate-500 max-w-sm mx-auto mb-10 leading-relaxed font-inter">
-                Allow us to see your location and we'll show you certified labs within a 50km radius for faster home sample collection.
-              </p>
-              <button 
-                onClick={handleGetLocation}
-                className="bg-primary-500 hover:bg-primary-600 text-white px-10 py-4 rounded-2xl font-bold shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 transition-all hover:-translate-y-1 active:scale-95 flex items-center gap-3 mx-auto"
-              >
-                <Navigation className="w-5 h-5" />
-                Find My Location
-              </button>
-            </div>
-          </div>
-        )}
 
-        {loading && labs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 bg-white rounded-[40px] border border-slate-100 shadow-sm">
-            <div className="relative mb-8">
-              <div className="h-16 w-16 rounded-full border-4 border-primary-100 border-t-primary-500 animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-primary-500 animate-pulse" />
-              </div>
-            </div>
-            <p className="text-xl font-bold text-slate-900 animate-pulse font-inter">Scanning the area...</p>
-            <p className="text-slate-500 mt-2 font-inter">Seeking certified partners near you</p>
-          </div>
-        )}
+          {/* Fades */}
+          <div className="absolute top-0 right-0 bottom-6 w-12 bg-gradient-to-l from-white to-transparent pointer-events-none hidden md:block" />
+          <div className="absolute top-0 left-0 bottom-6 w-12 bg-gradient-to-r from-white to-transparent pointer-events-none hidden md:block" />
+        </div>
       </div>
     </section>
   );

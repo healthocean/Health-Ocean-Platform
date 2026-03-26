@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ApiConstants {
-  static const String baseUrl = 'http://10.121.197.207:4000/api';
+  static const String baseUrl = 'https://health-ocean.onrender.com/api';
 
   static const String login = '$baseUrl/users/login';
   static const String signup = '$baseUrl/users/register';

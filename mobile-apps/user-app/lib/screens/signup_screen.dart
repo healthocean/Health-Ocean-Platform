@@ -82,7 +82,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 child: Column(
                   children: [
-                    Image.asset('assets/logo.jpeg', height: 60, fit: BoxFit.contain),
+                    Image.asset('assets/healthoceanlogo.png', height: 60, fit: BoxFit.contain),
                     const SizedBox(height: 12),
                     const Text('Create Account', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF03045E))),
                     const SizedBox(height: 4),

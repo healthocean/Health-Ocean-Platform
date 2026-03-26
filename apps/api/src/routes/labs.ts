@@ -106,6 +106,17 @@ const packageCreateSchema = z.object({
   features: z.array(z.string()),
 });
 
+// GET /api/labs/details/:id - Get lab details by _id (public)
+router.get('/details/:id', async (req, res) => {
+  try {
+    const lab = await Lab.findById(req.params.id).select('-password');
+    if (!lab) return res.status(404).json({ success: false, message: 'Lab not found' });
+    res.json({ success: true, lab });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 // POST /api/labs/register - Register a new lab
 router.post('/register', async (req, res) => {
   try {
@@ -350,6 +361,7 @@ router.post('/employees/login', async (req, res) => {
         employeeId: employee.employeeId,
         name: employee.name,
         email: employee.email,
+        phone: employee.phone,
         role: employee.role,
         labId: employee.labId,
       },

@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer';
 import { Search, ShoppingCart, TestTube, MapPin, Trash2 } from 'lucide-react';
 import { addToCart, removeFromCart, getCart } from '@/lib/cart';
 import { useRouter } from 'next/navigation';
+import { useLocation } from '@/contexts/LocationContext';
 
 interface Test {
   id: string;
@@ -24,6 +25,7 @@ interface Test {
 
 export default function TestsPage() {
   const router = useRouter();
+  const { location: currentLocation } = useLocation();
   const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -43,11 +45,11 @@ export default function TestsPage() {
 
   useEffect(() => {
     fetchTests(true);
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, currentLocation]);
 
   useEffect(() => {
     if (page > 1) fetchTests(false);
-  }, [page]);
+  }, [page, currentLocation]);
 
   const fetchTests = async (reset = false) => {
     if (reset) {
@@ -61,17 +63,27 @@ export default function TestsPage() {
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (selectedCategory !== 'All') params.set('category', selectedCategory);
+      
+      // Location Filtering
+      if (currentLocation?.lat && currentLocation?.lng) {
+        params.set('lat', currentLocation.lat.toString());
+        params.set('lng', currentLocation.lng.toString());
+      } else if (currentLocation?.pincode) {
+        params.set('pincode', currentLocation.pincode);
+      }
+      params.set('radius', '50');
+
       params.set('page', reset ? '1' : page.toString());
       params.set('limit', '10');
 
-      const res = await fetch(`http://localhost:4000/api/tests?${params}`);
+      const res = await fetch(`http://10.29.34.207:4000/api/tests?${params}`);
       const data = await res.json();
       setTests(prev => reset ? (data.tests ?? []) : [...prev, ...(data.tests ?? [])]);
       setTotalPages(data.totalPages ?? 1);
 
       // Build category list from results if not yet loaded
       if (categories.length === 1) {
-        const catRes = await fetch('http://localhost:4000/api/tests/meta/categories');
+        const catRes = await fetch('http://10.29.34.207:4000/api/tests/meta/categories');
         const catData = await catRes.json();
         setCategories(['All', ...(catData.categories ?? [])]);
       }
@@ -109,20 +121,20 @@ export default function TestsPage() {
             placeholder="Search for tests..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-500"
+            className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-500 font-bold text-gray-900"
           />
         </div>
 
         {/* Category Filter */}
-        <div className="mb-6 flex gap-3 overflow-x-auto pb-2">
+        <div className="mb-6 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full whitespace-nowrap text-sm transition ${
+              className={`px-6 py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition ${
                 selectedCategory === cat
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
+                  ? 'bg-gray-900 text-white shadow-lg'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               {cat}
@@ -134,13 +146,13 @@ export default function TestsPage() {
         {/* Results */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900" />
           </div>
         ) : tests.length === 0 ? (
-          <div className="text-center py-20">
-            <TestTube className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">No tests available yet.</p>
-            <p className="text-gray-400 text-sm mt-1">Labs are adding tests — check back soon.</p>
+          <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 p-12">
+            <MapPin className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+            <p className="text-gray-900 text-xl font-black">No Tests Found in Your Area</p>
+            <p className="text-gray-500 text-sm mt-2 max-w-xs mx-auto">Try changing your location or increasing the search radius to find nearby labs.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -151,54 +163,61 @@ export default function TestsPage() {
                 : 0;
 
               return (
-                <div key={test.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition flex flex-col">
+                <div key={test.id} className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 flex flex-col group">
                   <div className="flex-1">
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className="text-base font-semibold text-gray-900 leading-snug">{test.name}</h3>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="bg-primary-50 text-primary-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
+                        {test.category}
+                      </div>
                       {discount > 0 && (
-                        <span className="ml-2 flex-shrink-0 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">
+                        <span className="flex-shrink-0 bg-green-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full">
                           {discount}% OFF
                         </span>
                       )}
                     </div>
 
+                    <h3 className="text-lg font-black text-gray-900 mb-2 leading-tight group-hover:text-primary-600 transition-colors line-clamp-2">{test.name}</h3>
+
                     {/* Lab name */}
-                    <p className="text-xs text-primary-600 font-medium mb-2 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" />
-                      {test.labName}{test.labCity ? `, ${test.labCity}` : ''}
-                    </p>
+                    <div className="flex items-center gap-2 mb-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+                      <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                        <MapPin className="w-4 h-4 text-primary-500" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter leading-none">Provided by</p>
+                        <p className="text-xs text-gray-900 font-black">{test.labName}{test.labCity ? `, ${test.labCity}` : ''}</p>
+                      </div>
+                    </div>
 
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-2">{test.description}</p>
-
-                    <div className="flex items-baseline gap-2 mb-3">
-                      <span className="text-2xl font-bold text-gray-900">₹{test.price}</span>
+                    <div className="flex items-baseline gap-2 mb-6">
+                      <span className="text-2xl font-black text-gray-900 tracking-tighter">₹{test.price}</span>
                       {test.originalPrice && (
-                        <span className="text-sm text-gray-400 line-through">₹{test.originalPrice}</span>
+                        <span className="text-sm text-gray-400 line-through font-bold">₹{test.originalPrice}</span>
                       )}
                     </div>
 
-                    <div className="space-y-1 text-sm text-gray-600 mb-4">
-                      <div className="flex justify-between">
-                        <span>Sample:</span>
-                        <span className="font-medium">{test.sampleType}</span>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <div className="bg-gray-50 rounded-2xl p-3">
+                        <p className="text-[9px] uppercase font-black text-gray-400 tracking-widest mb-1">Sample</p>
+                        <p className="text-xs font-black text-gray-700 truncate">{test.sampleType}</p>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Report in:</span>
-                        <span className="font-medium">{test.turnaroundTime}</span>
+                      <div className="bg-gray-50 rounded-2xl p-3">
+                        <p className="text-[9px] uppercase font-black text-gray-400 tracking-widest mb-1">Report</p>
+                        <p className="text-xs font-black text-gray-700 truncate">{test.turnaroundTime}</p>
                       </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => inCart ? removeFromCart(test.id) : handleAddToCart(test)}
-                    className={`w-full py-2.5 rounded-lg font-medium transition text-sm flex items-center justify-center gap-2 ${
+                    className={`w-full py-4 rounded-2xl font-black text-xs tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${
                       inCart
-                        ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                        : 'bg-primary-500 text-white hover:bg-primary-600'
+                        ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
+                        : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg'
                     }`}
                   >
                     {inCart ? <Trash2 className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-                    {inCart ? 'Remove from Cart' : 'Add to Cart'}
+                    {inCart ? 'REMOVE FROM CART' : 'ADD TO CART'}
                   </button>
                 </div>
               );
@@ -207,13 +226,13 @@ export default function TestsPage() {
         )}
 
         {!loading && page < totalPages && (
-          <div className="mt-10 flex justify-center">
+          <div className="mt-12 flex justify-center">
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={loadingMore}
-              className="px-8 py-3 border-2 border-primary-500 text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition disabled:opacity-70 disabled:cursor-not-allowed"
+              className="px-10 py-4 bg-white border-2 border-gray-100 text-gray-900 font-black text-xs tracking-widest rounded-2xl hover:border-gray-900 transition-all disabled:opacity-50"
             >
-              {loadingMore ? 'Loading more tests...' : 'Load More Tests'}
+              {loadingMore ? 'LOADING...' : 'LOAD MORE TESTS'}
             </button>
           </div>
         )}

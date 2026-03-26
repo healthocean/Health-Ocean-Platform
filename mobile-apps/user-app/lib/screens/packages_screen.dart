@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shimmer_placeholder.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -203,7 +204,14 @@ class _PackagesScreenState extends State<PackagesScreen> {
           const SizedBox(height: 8),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 6,
+                    itemBuilder: (context, index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: ShimmerPlaceholder.rounded(height: 150, borderRadius: 24),
+                    ),
+                  )
                 : _packages.isEmpty
                     ? const Center(child: Text('No packages found', style: TextStyle(color: ApiConstants.oceanEnd)))
                     : RefreshIndicator(

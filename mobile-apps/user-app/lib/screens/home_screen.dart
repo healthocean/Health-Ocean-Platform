@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import '../widgets/shimmer_placeholder.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -63,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   int _currentTopLabRawPage = 5000;
   int _currentTopLabPage = 0;
   bool _isTopLabsInteracting = false;
+  DateTime? _lastLabsRetryTime;
 
   String? _initialTestCategory;
   String? _initialTestGender;
@@ -359,7 +362,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
               toolbarHeight: 60,
-              title: Image.asset('assets/logo.jpeg', height: 40, fit: BoxFit.contain),
+              title: Image.asset('assets/healthoceanlogo.png', height: 40, fit: BoxFit.contain),
               centerTitle: false,
               actions: [
                 _authAction(authProvider),
@@ -773,7 +776,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           foregroundColor: Colors.white,
           elevation: 0,
           automaticallyImplyLeading: false,
-          title: Image.asset('assets/logo.jpeg', height: 40, fit: BoxFit.contain),
+          title: Image.asset('assets/healthoceanlogo.png', height: 40, fit: BoxFit.contain),
           centerTitle: false,
           actions: [
             _authAction(authProvider),
@@ -1892,7 +1895,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/logo.jpeg', height: 80, fit: BoxFit.contain),
+              Image.asset('assets/healthoceanlogo.png', height: 80, fit: BoxFit.contain),
               const SizedBox(height: 12),
               const Text('Please login to view profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
@@ -2184,13 +2187,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       itemCount: 3,
-      itemBuilder: (context, _) => Container(
-        width: MediaQuery.of(context).size.width * 0.88,
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.grey.shade100),
+      itemBuilder: (context, _) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        child: ShimmerPlaceholder.rounded(
+          width: MediaQuery.of(context).size.width * 0.88,
+          height: 140,
+          borderRadius: 24,
         ),
       ),
     );
@@ -2214,14 +2216,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: Icon(Icons.info_outline_rounded, color: Colors.blue.shade400),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('No curated labs here yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B))),
-                SizedBox(height: 2),
-                Text('We are arriving in your area soon!', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                const Text('No curated labs here yet', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF1E293B))),
+                const SizedBox(height: 2),
+                const Text('We are arriving in your area soon!', style: TextStyle(fontSize: 11, color: Colors.blueGrey)),
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    if (_lastLabsRetryTime != null && now.difference(_lastLabsRetryTime!).inSeconds < 5) {
+                      AppToast.show(context, 'Please wait a moment before retrying', type: ToastType.info);
+                      return;
+                    }
+                    _lastLabsRetryTime = now;
+                    if (_userLat != null && _userLng != null) {
+                      await _fetchNearbyLabs(_userLat!, _userLng!);
+                    }
+                  },
+                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                  label: const Text('Retry', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor: Colors.blue.shade400,
+                  ),
+                ),
               ],
             ),
           ),

@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   keywords: ['lab tests', 'health', 'diagnostics', 'home collection', 'medical tests'],
 };
 
+import { LocationProvider } from '@/contexts/LocationContext';
+
 export default function RootLayout({
   children,
 }: {
@@ -17,7 +19,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={inter.className}>
+        <LocationProvider>{children}</LocationProvider>
+      </body>
     </html>
   );
 }
