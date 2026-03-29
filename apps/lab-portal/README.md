@@ -15,7 +15,7 @@ Laboratory management portal for Health Ocean diagnostic centers.
 ### Prerequisites
 
 - Node.js 18+ installed
-- API server running on `http://localhost:4000`
+- API server running on `http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app`
 - MongoDB running
 
 ### Installation
@@ -60,7 +60,7 @@ The lab portal runs on port 3001 by default to avoid conflicts with the main web
 
 ## API Integration
 
-The portal connects to the Health Ocean API at `http://localhost:4000/api/labs/*`
+The portal connects to the Health Ocean API at `http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app/api/labs/*`
 
 ## Tech Stack
 

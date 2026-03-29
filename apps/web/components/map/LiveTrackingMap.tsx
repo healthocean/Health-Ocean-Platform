@@ -7,7 +7,7 @@ import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icons in Leaflet with Next.js
 const scootyIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png', 
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png',
   iconSize: [50, 50],
   iconAnchor: [25, 25],
 });
@@ -58,11 +58,11 @@ export default function LiveTrackingMap({ bookingId }: LiveTrackingMapProps) {
   useEffect(() => {
     const fetchBooking = async () => {
       try {
-        const response = await fetch(`http://10.29.34.207:4000/api/bookings/${bookingId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings/${bookingId}`);
         const data = await response.json();
         if (data.success) {
           setBooking(data.booking);
-          
+
           let uPos: [number, number] | null = null;
           let pPos: [number, number] | null = null;
 
@@ -113,7 +113,7 @@ export default function LiveTrackingMap({ bookingId }: LiveTrackingMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        
+
         {/* Route Path */}
         {route.length > 0 && (
           <Polyline positions={route} pathOptions={{ color: '#0ea5e9', weight: 6, opacity: 0.8, lineJoin: 'round' }} />
@@ -150,21 +150,21 @@ export default function LiveTrackingMap({ bookingId }: LiveTrackingMapProps) {
             </h3>
           </div>
           <div className="text-right pl-5 border-l border-gray-100 flex flex-col justify-center">
-             <p className="text-2xl font-black text-gray-900 tracking-tighter leading-none">
-                {phlebPos ? '4' : '??'}
-             </p>
-             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">mins away</p>
+            <p className="text-2xl font-black text-gray-900 tracking-tighter leading-none">
+              {phlebPos ? '4' : '??'}
+            </p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">mins away</p>
           </div>
         </div>
-        
+
         <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-                <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest leading-none">Healthy Connection</span>
-            </div>
-            <div className="bg-gray-50 px-3 py-1.5 rounded-full">
-               <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] leading-none">REF: #{bookingId.slice(-6)}</p>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest leading-none">Healthy Connection</span>
+          </div>
+          <div className="bg-gray-50 px-3 py-1.5 rounded-full">
+            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.15em] leading-none">REF: #{bookingId.slice(-6)}</p>
+          </div>
         </div>
       </div>
     </div>

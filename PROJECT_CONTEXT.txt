@@ -62,7 +62,7 @@ Mobile (mobile-apps/user-app):
 --------------------------------------------------------------------------------
 API BASE URL
 --------------------------------------------------------------------------------
-Local dev (web/admin/lab portals): http://localhost:4000/api
+Local dev (web/admin/lab portals): http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app/api
 Mobile app (LAN):                  http://10.121.197.207:4000/api
   *** Update IP in: mobile-apps/user-app/lib/utils/constants.dart ***
   *** when network changes ***

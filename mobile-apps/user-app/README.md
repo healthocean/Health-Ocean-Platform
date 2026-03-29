@@ -11,7 +11,7 @@ The official Health Ocean cross-platform mobile application giving patients full
 
 ## Installation
 Ensure Flutter is set up properly locally alongside an Android SDK or Xcode build.
-The Health Ocean backend API must be active and broadcasting locally (e.g. `localhost:4000`) or via an external domain updated in the `api_service.dart`.
+The Health Ocean backend API must be active and broadcasting locally (e.g. `https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app`) or via an external domain updated in the `api_service.dart`.
 
 ```bash
 # 1. Ensure connectivity & package hydration

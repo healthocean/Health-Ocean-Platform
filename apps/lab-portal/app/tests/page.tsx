@@ -41,7 +41,7 @@ export default function TestsPage() {
 
   const fetchTests = async (labId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/${labId}/tests`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/tests`);
       const data = await res.json();
       if (data.success) {
         setTests(data.tests);
@@ -58,7 +58,7 @@ export default function TestsPage() {
   const toggleStatus = async (test: Test) => {
     const newStatus = test.status === 'Active' ? 'Inactive' : 'Active';
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/tests/${test._id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/tests/${test._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),

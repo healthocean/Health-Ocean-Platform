@@ -63,7 +63,7 @@ export default function TestsPage() {
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (selectedCategory !== 'All') params.set('category', selectedCategory);
-      
+
       // Location Filtering
       if (currentLocation?.lat && currentLocation?.lng) {
         params.set('lat', currentLocation.lat.toString());
@@ -76,14 +76,14 @@ export default function TestsPage() {
       params.set('page', reset ? '1' : page.toString());
       params.set('limit', '10');
 
-      const res = await fetch(`http://10.29.34.207:4000/api/tests?${params}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests?${params}`);
       const data = await res.json();
       setTests(prev => reset ? (data.tests ?? []) : [...prev, ...(data.tests ?? [])]);
       setTotalPages(data.totalPages ?? 1);
 
       // Build category list from results if not yet loaded
       if (categories.length === 1) {
-        const catRes = await fetch('http://10.29.34.207:4000/api/tests/meta/categories');
+        const catRes = await fetch('${process.env.NEXT_PUBLIC_API_URL}/tests/meta/categories');
         const catData = await catRes.json();
         setCategories(['All', ...(catData.categories ?? [])]);
       }
@@ -131,11 +131,10 @@ export default function TestsPage() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition ${
-                selectedCategory === cat
+              className={`px-6 py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition ${selectedCategory === cat
                   ? 'bg-gray-900 text-white shadow-lg'
                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-              }`}
+                }`}
             >
               {cat}
             </button>
@@ -210,11 +209,10 @@ export default function TestsPage() {
 
                   <button
                     onClick={() => inCart ? removeFromCart(test.id) : handleAddToCart(test)}
-                    className={`w-full py-4 rounded-2xl font-black text-xs tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${
-                      inCart
+                    className={`w-full py-4 rounded-2xl font-black text-xs tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${inCart
                         ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
                         : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg'
-                    }`}
+                      }`}
                   >
                     {inCart ? <Trash2 className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
                     {inCart ? 'REMOVE FROM CART' : 'ADD TO CART'}

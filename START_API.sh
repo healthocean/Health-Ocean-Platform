@@ -18,7 +18,7 @@ if [ ! -f .env ]; then
 fi
 
 echo ""
-echo "Starting API server on http://localhost:4000"
+echo "Starting API server on http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app"
 echo ""
 
 npm run dev

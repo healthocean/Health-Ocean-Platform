@@ -383,6 +383,122 @@ router.get('/bookings', verifyAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/analytics - Detailed analytics and insights
+router.get('/analytics', verifyAdmin, async (req, res) => {
+  try {
+    const days = parseInt(req.query.days as string) || 30;
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    // 1. Orders and Revenue Trend
+    const trendData = await Booking.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          orders: { $sum: 1 },
+          revenue: { $sum: '$totalAmount' },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // 2. City Performance
+    const cityData = await Booking.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      { $group: { _id: '$city', orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+      { $sort: { orders: -1 } },
+      { $limit: 10 },
+    ]);
+
+    // 3. Lab Performance
+    const labData = await Booking.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      { $group: { _id: '$labId', orders: { $sum: 1 }, revenue: { $sum: '$totalAmount' } } },
+      { $sort: { orders: -1 } },
+      { $limit: 10 },
+    ]);
+    const labIds = labData.map((l: any) => l._id).filter(Boolean);
+    const labDocs = await Lab.find({ labId: { $in: labIds } }).select('labId name');
+    const labMap: Record<string, string> = {};
+    labDocs.forEach((l: any) => { labMap[l.labId] = l.name; });
+    const labPerformance = labData.map((l: any) => ({
+      name: labMap[l._id] || l._id || 'Unknown',
+      orders: l.orders,
+      revenue: l.revenue || 0,
+    }));
+
+    // 4. Test Popularity
+    const testData = await Booking.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      { $unwind: '$testIds' },
+      { $group: { _id: '$testIds', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+    ]);
+    const testIds = testData.map((t: any) => t._id);
+    const testDocs = await LabTest.find({ testId: { $in: testIds } }).select('testId name');
+    const testMap: Record<string, string> = {};
+    testDocs.forEach((t: any) => { testMap[t.testId] = t.name; });
+    const testPopularity = testData.map((t: any) => ({
+      name: testMap[t._id] || t._id || 'Unknown',
+      count: t.count,
+    }));
+
+    // 5. Booking status breakdown
+    const statusBreakdown = await Booking.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+
+    // 6. User retention
+    const userStats = await Booking.aggregate([
+      { $group: { _id: '$email', bookings: { $sum: 1 } } },
+    ]);
+    const totalOrderedUsers = userStats.length;
+    const repeatUsers = userStats.filter((u: any) => u.bookings > 1).length;
+    const retentionRate = totalOrderedUsers > 0 ? ((repeatUsers / totalOrderedUsers) * 100).toFixed(1) : '0';
+
+    // 7. Summary totals for the period
+    const periodSummary = await Booking.aggregate([
+      { $match: { createdAt: { $gte: since } } },
+      { $group: { _id: null, totalOrders: { $sum: 1 }, totalRevenue: { $sum: '$totalAmount' } } },
+    ]);
+    const totalOrders = periodSummary[0]?.totalOrders || 0;
+    const totalRevenue = periodSummary[0]?.totalRevenue || 0;
+    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+
+    // 8. Total active tests count
+    const totalTests = await LabTest.countDocuments({ status: 'Active' });
+
+    // 9. Funnel
+    const totalUsers = await User.countDocuments();
+    const funnel = [
+      { step: 'Registered Users', count: totalUsers },
+      { step: 'Users Booked', count: totalOrderedUsers },
+      { step: 'Repeat Users', count: repeatUsers },
+    ];
+
+    res.json({
+      success: true,
+      data: {
+        trend: trendData,
+        cities: cityData.map((c: any) => ({ name: c._id || 'Unknown', orders: c.orders, revenue: c.revenue || 0 })),
+        labs: labPerformance,
+        tests: testPopularity,
+        statusBreakdown: statusBreakdown.map((s: any) => ({ status: s._id, count: s.count })),
+        retention: { totalUsers: totalOrderedUsers, repeatUsers, rate: retentionRate },
+        summary: { totalOrders, totalRevenue, avgOrderValue },
+        totalTests,
+        funnel,
+      },
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
 // ============ SUPERADMIN ONLY ROUTES ============
 
 // GET /api/admin/admins - Get all admins (SuperAdmin only)

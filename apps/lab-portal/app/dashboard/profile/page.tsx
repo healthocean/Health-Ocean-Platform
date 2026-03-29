@@ -23,7 +23,7 @@ export default function ProfilePage() {
       const u = localStorage.getItem('labUser');
       if (!u) return;
       const parsed = JSON.parse(u);
-      const res = await fetch(`http://localhost:4000/api/labs/${parsed.labId}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${parsed.labId}`);
       const data = await res.json();
       if (data.success) {
         setLab(data.lab);
@@ -54,7 +54,7 @@ export default function ProfilePage() {
       const u = localStorage.getItem('labUser');
       if (!u) return;
       const parsed = JSON.parse(u);
-      const res = await fetch(`http://localhost:4000/api/labs/${parsed.labId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${parsed.labId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

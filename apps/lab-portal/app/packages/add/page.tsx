@@ -42,7 +42,7 @@ export default function AddPackagePage() {
 
   const loadTests = async (labId: string) => {
     try {
-      const response = await fetch(`http://localhost:4000/api/labs/${labId}/tests`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/tests`);
       const data = await response.json();
       if (data.success) {
         setTests(data.tests.filter((t: Test) => t));
@@ -112,7 +112,7 @@ export default function AddPackagePage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:4000/api/labs/${labId}/packages`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/packages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -50,7 +50,7 @@ npm run build
 npm start
 ```
 
-The API will run on http://localhost:4000
+The API will run on http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app
 
 ## Environment Variables
 

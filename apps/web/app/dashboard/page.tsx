@@ -25,9 +25,9 @@ export default function DashboardPage() {
     // Fetch user's bookings
     const fetchBookings = async () => {
       try {
-        const response = await fetch(`http://localhost:4000/api/bookings?email=${userData?.email}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings?email=${userData?.email}`);
         const data = await response.json();
-        
+
         if (data.success) {
           setBookings(data.bookings);
         }
@@ -57,7 +57,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="bg-gradient-to-r from-primary-500 to-secondary-500 rounded-2xl p-8 text-white mb-8">
@@ -130,7 +130,7 @@ export default function DashboardPage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Bookings</h2>
-              
+
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
                 <div className="text-center py-12">
                   <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No bookings yet</p>
-                  <button 
+                  <button
                     onClick={() => router.push('/tests')}
                     className="btn btn-primary"
                   >
@@ -157,24 +157,23 @@ export default function DashboardPage() {
                             Booking #{booking.bookingId}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            {new Date(booking.date).toLocaleDateString('en-IN', { 
-                              weekday: 'short', 
-                              year: 'numeric', 
-                              month: 'short', 
-                              day: 'numeric' 
+                            {new Date(booking.date).toLocaleDateString('en-IN', {
+                              weekday: 'short',
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
                             })}
                           </p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
                           booking.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                          booking.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
+                            booking.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
+                              'bg-yellow-100 text-yellow-700'
+                          }`}>
                           {booking.status}
                         </span>
                       </div>
-                      
+
                       <div className="text-sm text-gray-600 space-y-1">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
@@ -193,7 +192,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {bookings.length > 5 && (
                     <button className="text-primary-500 hover:text-primary-600 text-sm font-medium">
                       View all bookings →
@@ -207,7 +206,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <button 
+          <button
             onClick={() => router.push('/tests')}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition text-left"
           >
@@ -216,7 +215,7 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-600">Explore our test catalog</p>
           </button>
 
-          <button 
+          <button
             onClick={() => router.push('/booking')}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition text-left"
           >

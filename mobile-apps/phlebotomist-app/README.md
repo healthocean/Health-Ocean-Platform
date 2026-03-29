@@ -12,7 +12,7 @@ This is the Flutter mobile application specifically designed for Sample Collecto
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.19+ recommended)
 - Dart SDK
 - Android Studio / Xcode for device simulation
-- **Configured Backend:** Ensure the Health Ocean Backend API is running on `localhost:4000` (or update base URL in `api_service.dart`)
+- **Configured Backend:** Ensure the Health Ocean Backend API is running on `https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app` (or update base URL in `api_service.dart`)
 
 ## Quick Start
 ```bash

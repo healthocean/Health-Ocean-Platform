@@ -47,7 +47,7 @@ export default function LabsPage() {
   const fetchLabs = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/admin/labs', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/labs`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -90,7 +90,7 @@ export default function LabsPage() {
   const handleStatusChange = async (labId: string, newStatus: 'Approved' | 'Rejected') => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:4000/api/admin/labs/${labId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/labs/${labId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

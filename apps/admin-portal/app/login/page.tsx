@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/layout/Header';
+import LoginHeader from '@/components/layout/LoginHeader';
 import Footer from '@/components/layout/Footer';
-import { Shield, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Shield, Mail, Lock, AlertCircle, LogIn } from 'lucide-react';
 import { setAdminAuth } from '@/lib/adminAuth';
 
 export default function LoginPage() {
@@ -16,13 +16,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const DEMO_EMAIL = 'superadmin@healthocean.com';
+  const DEMO_PASSWORD = 'superadmin123';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:4000/api/admin/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,9 +54,16 @@ export default function LoginPage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleAutoFill = () => {
+    setFormData({
+      email: DEMO_EMAIL,
+      password: DEMO_PASSWORD,
+    });
+  };
+
   return (
     <main className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-red-50">
-      <Header />
+      <LoginHeader />
       
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full">
@@ -74,9 +84,18 @@ export default function LoginPage() {
             )}
 
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-              <p className="text-sm text-blue-800 font-medium mb-2">Demo Credentials:</p>
-              <p className="text-xs text-blue-700">SuperAdmin: superadmin@healthocean.com / superadmin123</p>
-              <p className="text-xs text-blue-700 mt-1">Run: npm run create-superadmin (in apps/api)</p>
+              <p className="text-sm text-blue-800 font-medium mb-3">Demo Credentials:</p>
+              <p className="text-xs text-blue-700 mb-3">SuperAdmin: superadmin@healthocean.com / superadmin123</p>
+              <p className="text-xs text-blue-700 mb-4">Run: npm run create-superadmin (in apps/api)</p>
+              
+              <button
+                type="button"
+                onClick={handleAutoFill}
+                className="w-full flex items-center justify-center gap-2 bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-lg transition-colors text-xs font-medium"
+              >
+                <LogIn className="w-4 h-4" />
+                Auto Fill
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">

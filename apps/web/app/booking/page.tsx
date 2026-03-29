@@ -43,7 +43,7 @@ export default function BookingPage() {
     if (isAuthenticated()) {
       const userData = getUser();
       setUser(userData);
-      
+
       // Pre-fill form with user data
       if (userData) {
         setFormData(prev => ({
@@ -52,7 +52,7 @@ export default function BookingPage() {
           email: userData.email || '',
           phone: userData.phone || '',
         }));
-        
+
         // Skip to address step if logged in
         setStep(2);
       }
@@ -72,14 +72,14 @@ export default function BookingPage() {
   const handleApplyCoupon = () => {
     setCouponError('');
     const coupon = availableCoupons.find(c => c.code.toUpperCase() === couponCode.toUpperCase());
-    
+
     if (!coupon) {
       setCouponError('Invalid coupon code');
       return;
     }
 
     const total = getCartTotal();
-    
+
     // Check minimum order for fixed discount coupons
     if (coupon.code === 'HEALTH100' && total < 500) {
       setCouponError('Minimum order of ₹500 required for this coupon');
@@ -98,9 +98,9 @@ export default function BookingPage() {
 
   const calculateDiscount = () => {
     if (!appliedCoupon) return 0;
-    
+
     const total = getCartTotal();
-    
+
     if (appliedCoupon.type === 'percentage') {
       return Math.round((total * appliedCoupon.discount) / 100);
     } else {
@@ -116,13 +116,13 @@ export default function BookingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
       // Submit booking to API
       setLoading(true);
-      
+
       try {
         const bookingData = {
           ...formData,
@@ -137,7 +137,7 @@ export default function BookingPage() {
           } : undefined,
         };
 
-        const response = await fetch('http://10.29.34.207:4000/api/bookings', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -149,10 +149,10 @@ export default function BookingPage() {
 
         if (data.success) {
           console.log('Booking created:', data.booking);
-          
+
           // Clear cart after successful booking
           clearCart();
-          
+
           setStep(5);
         } else {
           alert('Booking failed: ' + (data.message || 'Unknown error'));
@@ -174,7 +174,7 @@ export default function BookingPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
         {step <= totalSteps && <div className="mb-8">
@@ -182,9 +182,8 @@ export default function BookingPage() {
           <div className="flex items-center w-full">
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
               <React.Fragment key={`step-${s}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0 ${
-                  step >= s ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold shrink-0 ${step >= s ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>
                   {s}
                 </div>
                 {s < totalSteps && (
@@ -263,7 +262,7 @@ export default function BookingPage() {
             {!user && step === 1 && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Personal Information</h2>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <User className="w-4 h-4 inline mr-2" />
@@ -325,7 +324,7 @@ export default function BookingPage() {
                     </p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <MapPin className="w-4 h-4 inline mr-2" />
@@ -381,7 +380,7 @@ export default function BookingPage() {
             {((user && step === 3) || (!user && step === 3)) && (
               <div className="space-y-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Schedule Sample Collection</h2>
-                
+
                 {/* Show cart items if any */}
                 {cart.length > 0 && (
                   <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-6">
@@ -401,14 +400,14 @@ export default function BookingPage() {
                           <span>Subtotal</span>
                           <span>₹{getCartTotal()}</span>
                         </div>
-                        
+
                         {appliedCoupon && (
                           <div className="flex justify-between text-sm text-green-600 mt-1">
                             <span>Discount ({appliedCoupon.code})</span>
                             <span>-₹{calculateDiscount()}</span>
                           </div>
                         )}
-                        
+
                         <div className="flex justify-between font-semibold mt-2">
                           <span>Total</span>
                           <span>₹{getFinalTotal()}</span>
@@ -421,7 +420,7 @@ export default function BookingPage() {
                 {/* Coupon Code Section */}
                 <div className="bg-white border-2 border-dashed border-gray-300 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-900 mb-3">Have a Coupon Code?</h3>
-                  
+
                   {!appliedCoupon ? (
                     <div className="flex gap-2">
                       <input
@@ -460,7 +459,7 @@ export default function BookingPage() {
                       </button>
                     </div>
                   )}
-                  
+
                   {couponError && (
                     <p className="text-sm text-red-600 mt-2">{couponError}</p>
                   )}
@@ -488,7 +487,7 @@ export default function BookingPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     <Calendar className="w-4 h-4 inline mr-2" />

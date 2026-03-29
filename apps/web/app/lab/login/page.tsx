@@ -22,7 +22,7 @@ export default function LabLoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://10.29.34.207:4000/api/labs/login', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL}/labs/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +54,7 @@ export default function LabLoginPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center mb-8">

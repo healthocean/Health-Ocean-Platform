@@ -79,7 +79,7 @@ export default function DashboardPage() {
 
   const fetchEmployees = async (labId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/${labId}/employees`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/employees`);
       const data = await res.json();
       if (data.success) {
         // Filter for technicians/phlebotomists
@@ -91,7 +91,7 @@ export default function DashboardPage() {
   const handleAssign = async (employeeId: string) => {
     if (!selectedBooking) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/bookings/${selectedBooking}/assign`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/bookings/${selectedBooking}/assign`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ employeeId }),
@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
   const fetchStats = async (labId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/${labId}/stats`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/stats`);
       const data = await res.json();
       if (data.success) setStats(data.stats);
       else setError('Failed to load stats');
@@ -123,7 +123,7 @@ export default function DashboardPage() {
 
   const fetchBookings = async (labId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/${labId}/bookings`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/bookings`);
       const data = await res.json();
       if (data.success) setBookings(data.bookings);
     } catch {
@@ -138,7 +138,7 @@ export default function DashboardPage() {
       const formData = new FormData();
       formData.append('report', file);
       
-      const res = await fetch(`http://localhost:4000/api/labs/bookings/${bookingId}/report`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/bookings/${bookingId}/report`, {
         method: 'POST',
         body: formData,
       });
@@ -368,7 +368,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-6 py-4">
                           {b.reportUrl ? (
-                            <a href={`http://localhost:4000${b.reportUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors">
+                            <a href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${b.reportUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-xs font-medium hover:bg-green-100 transition-colors">
                               <FileText className="w-3.5 h-3.5" /> View
                             </a>
                           ) : (
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="pt-2 border-t border-gray-50 mt-2">
                        {b.reportUrl ? (
-                          <a href={`http://localhost:4000${b.reportUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
+                          <a href={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${b.reportUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
                             <FileText className="w-4 h-4" /> View Report
                           </a>
                         ) : (

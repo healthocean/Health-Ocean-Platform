@@ -48,8 +48,9 @@ export default function UsersPage() {
 
     try {
       const token = localStorage.getItem('adminToken');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const response = await fetch(
-        `http://localhost:4000/api/admin/users/search?query=${encodeURIComponent(searchQuery)}`,
+        `${apiUrl}/admin/users/search?query=${encodeURIComponent(searchQuery)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -89,35 +90,36 @@ export default function UsersPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">User Search</h1>
-          <p className="text-gray-600">Search for users by email or phone number</p>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">User Search</h1>
+          <p className="text-lg text-gray-500">Find users by email or phone number</p>
         </div>
 
         {/* Search Form */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <div className="flex-1 relative">
+        <div className="bg-gradient-to-r from-blue-50 to-red-50 rounded-2xl shadow-xl border border-gray-100 p-8 mb-8">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+            <div className="flex-1 relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
                 placeholder="Enter email or phone number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="input pl-10"
+                className="input pl-10 py-3 text-base border-2 border-gray-200 rounded-lg focus:border-red-400 focus:ring-2 focus:ring-red-100 transition w-full"
+                autoFocus
               />
             </div>
             <button
               type="submit"
               disabled={searching}
-              className="btn bg-gradient-to-r from-red-500 to-red-600 text-white px-8"
+              className="btn bg-gradient-to-r from-red-500 to-red-600 text-white px-10 py-3 rounded-lg text-base font-semibold shadow-md hover:from-red-600 hover:to-red-700 transition"
             >
               {searching ? 'Searching...' : 'Search'}
             </button>
           </form>
           {error && (
-            <p className="mt-3 text-sm text-red-600">{error}</p>
+            <p className="mt-4 text-base text-red-600 text-center">{error}</p>
           )}
         </div>
 
@@ -134,51 +136,31 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-3">Contact Information</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Email</p>
-                      <p className="font-medium text-gray-900">{userDetails.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Phone</p>
-                      <p className="font-medium text-gray-900">{userDetails.phone}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="text-xs text-gray-500">Registered</p>
-                      <p className="font-medium text-gray-900">
-                        {new Date(userDetails.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-3">Booking Statistics</h3>
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Package className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <p className="text-2xl font-bold text-blue-600">{userDetails.bookingsCount || 0}</p>
-                      <p className="text-sm text-blue-700">Total Bookings</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">All User Data</h3>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm border rounded-lg">
+                  <tbody>
+                    {Object.entries(userDetails)
+                      .filter(([key]) => !['createdAt', 'updatedAt', '__v', 'bookingsCount', 'recentBookings', '_id'].includes(key))
+                      .map(([key, value]) => (
+                        <tr key={key} className="border-b last:border-b-0">
+                          <td className="px-4 py-2 font-semibold text-gray-700 whitespace-nowrap capitalize">{key}</td>
+                          <td className="px-4 py-2 text-gray-900">
+                            {Array.isArray(value)
+                              ? JSON.stringify(value, null, 2)
+                              : typeof value === 'object' && value !== null
+                                ? JSON.stringify(value, null, 2)
+                                : String(value)}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Recent Bookings */}
+            {/* Recent Bookings (kept for context) */}
             {userDetails.recentBookings && userDetails.recentBookings.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>

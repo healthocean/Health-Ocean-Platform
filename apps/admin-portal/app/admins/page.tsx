@@ -44,7 +44,7 @@ export default function AdminsPage() {
   const fetchAdmins = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/admin/admins', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/admins`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -71,7 +71,7 @@ export default function AdminsPage() {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:4000/api/admin/admins', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/admins`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export default function AdminsPage() {
     
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:4000/api/admin/admins/${adminId}/status`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/admins/${adminId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export default function AdminsPage() {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`http://localhost:4000/api/admin/admins/${adminId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/admins/${adminId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

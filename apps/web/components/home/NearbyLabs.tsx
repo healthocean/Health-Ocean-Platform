@@ -27,7 +27,7 @@ export default function NearbyLabs() {
     setLoading(true);
     setError(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://10.29.34.207:4000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const params = new URLSearchParams();
       if (lat && lng) {
         params.set('lat', lat.toString());
@@ -36,7 +36,7 @@ export default function NearbyLabs() {
         params.set('pincode', pincode);
       }
       params.set('radiusKm', '50');
-      
+
       const res = await fetch(`${apiUrl}/api/labs/nearby/search?${params}`);
       const data = await res.json();
       if (data.success) {
@@ -71,9 +71,9 @@ export default function NearbyLabs() {
               Labs Near <span className="text-primary-600 underline decoration-primary-100 underline-offset-4 decoration-4">{location?.city || 'You'}</span>
             </h2>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={detectLocation}
               disabled={isDetecting || loading}
               className="p-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-gray-900 transition-all border border-gray-100 disabled:opacity-50"
@@ -81,7 +81,7 @@ export default function NearbyLabs() {
             >
               <NavigationIcon className={`w-4 h-4 ${isDetecting ? 'animate-spin' : ''}`} />
             </button>
-            <Link 
+            <Link
               href="/tests"
               className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-[16px] font-black text-[10px] tracking-widest shadow-lg hover:bg-black transition-all"
             >
@@ -93,7 +93,7 @@ export default function NearbyLabs() {
 
         {error && (
           <div className="p-6 rounded-[28px] bg-red-50 border border-red-100 text-red-800 flex items-center gap-4 max-w-xl mb-8">
-             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
               <MapPin className="w-5 h-5 text-red-500" />
             </div>
             <div>
@@ -105,20 +105,20 @@ export default function NearbyLabs() {
 
         {/* Horizontal Scroll Layout - Compact */}
         <div className="relative">
-          <div 
+          <div
             ref={scrollRef}
             className="flex gap-5 overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory px-1 -mx-1"
           >
             {labs.length > 0 ? (
               labs.slice(0, 10).map((lab) => (
-                <div 
-                  key={lab._id} 
+                <div
+                  key={lab._id}
                   onClick={() => router.push(`/labs/${lab._id}`)}
                   className="min-w-[280px] md:min-w-[320px] snap-center bg-white rounded-[32px] border border-gray-100 p-6 hover:shadow-xl hover:border-primary-100 transition-all duration-500 group relative overflow-hidden flex flex-col justify-between h-[280px] cursor-pointer"
                 >
                   {/* Local Group Item Decoration */}
                   <div className="absolute -right-4 -top-4 w-16 h-16 bg-primary-50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-500 -z-0 pointer-events-none group-hover:scale-150" />
-                  
+
                   <div className="relative z-10 w-full">
                     <div className="flex items-start justify-between mb-6">
                       <div className="h-12 w-12 rounded-2xl bg-gray-900 p-0.5 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform">
@@ -137,7 +137,7 @@ export default function NearbyLabs() {
                     <h3 className="text-lg font-black text-gray-900 group-hover:text-primary-600 transition-colors mb-2 truncate tracking-tighter">
                       {lab.name}
                     </h3>
-                    
+
                     <div className="flex items-start gap-2 text-gray-400">
                       <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-primary-500" />
                       <p className="text-[11px] font-bold line-clamp-2 leading-relaxed uppercase tracking-tighter opacity-80">
@@ -151,7 +151,7 @@ export default function NearbyLabs() {
                       <span className="text-[8px] uppercase tracking-widest text-gray-300 font-black mb-0.5">STATUS</span>
                       <span className="text-[10px] font-black text-gray-900 uppercase italic">Open until 8pm</span>
                     </div>
-                    <div 
+                    <div
                       className="h-10 w-10 rounded-xl bg-gray-50 group-hover:bg-primary-600 group-hover:text-white flex items-center justify-center transition-all shadow-sm"
                     >
                       <ArrowRight className="w-4 h-4" />
@@ -160,22 +160,22 @@ export default function NearbyLabs() {
                 </div>
               ))
             ) : !loading && !isDetecting && !error && (
-               <div className="w-full text-center py-16 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 flex flex-col items-center">
-                  <MapPin className="w-10 h-10 text-gray-200 mb-4" />
-                  <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Locate Certified Partners</h3>
-                  <button 
-                    onClick={detectLocation}
-                    className="mt-4 bg-gray-900 text-white px-8 py-3 rounded-xl font-black text-[10px] tracking-widest shadow-lg"
-                  >
-                    SCAN MY AREA
-                  </button>
-               </div>
+              <div className="w-full text-center py-16 bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-200 flex flex-col items-center">
+                <MapPin className="w-10 h-10 text-gray-200 mb-4" />
+                <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Locate Certified Partners</h3>
+                <button
+                  onClick={detectLocation}
+                  className="mt-4 bg-gray-900 text-white px-8 py-3 rounded-xl font-black text-[10px] tracking-widest shadow-lg"
+                >
+                  SCAN MY AREA
+                </button>
+              </div>
             )}
 
             {/* Skeleton / Loading */}
             {(loading || isDetecting) && [1, 2, 3, 4].map((i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className="min-w-[280px] md:min-w-[320px] h-[280px] bg-white rounded-[32px] border border-gray-100 p-6 animate-pulse flex flex-col justify-between"
               >
                 <div>

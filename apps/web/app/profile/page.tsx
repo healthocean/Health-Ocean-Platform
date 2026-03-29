@@ -25,9 +25,9 @@ export default function ProfilePage() {
     // Fetch user's bookings
     const fetchBookings = async () => {
       try {
-        const response = await fetch(`http://10.29.34.207:4000/api/bookings?email=${userData?.email}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings?email=${userData?.email}`);
         const data = await response.json();
-        
+
         if (data.success) {
           setBookings(data.bookings);
         }
@@ -57,7 +57,7 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-white">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Section */}
         <div className="bg-gray-900 rounded-[40px] p-12 text-white mb-12 relative overflow-hidden shadow-2xl">
@@ -134,7 +134,7 @@ export default function ProfilePage() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Bookings</h2>
-              
+
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto"></div>
@@ -144,7 +144,7 @@ export default function ProfilePage() {
                 <div className="text-center py-12">
                   <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-500 mb-4">No bookings yet</p>
-                  <button 
+                  <button
                     onClick={() => router.push('/tests')}
                     className="btn btn-primary"
                   >
@@ -154,48 +154,45 @@ export default function ProfilePage() {
               ) : (
                 <div className="space-y-4">
                   {bookings.slice(0, 5).map((booking) => (
-                    <div 
-                      key={booking._id} 
+                    <div
+                      key={booking._id}
                       className="group relative bg-white border border-gray-100 rounded-[32px] p-6 hover:border-primary-500 hover:shadow-2xl hover:shadow-primary-100 transition-all duration-500 overflow-hidden"
                     >
                       {/* Status Background Accent */}
-                      <div className={`absolute top-0 right-0 w-32 h-32 opacity-[0.03] transition-opacity group-hover:opacity-[0.08] ${
-                        booking.status === 'Completed' ? 'bg-green-500' :
+                      <div className={`absolute top-0 right-0 w-32 h-32 opacity-[0.03] transition-opacity group-hover:opacity-[0.08] ${booking.status === 'Completed' ? 'bg-green-500' :
                         booking.status === 'Cancelled' ? 'bg-red-500' :
-                        'bg-primary-500'
-                      }`} style={{ borderRadius: '0 0 0 100%' }}></div>
+                          'bg-primary-500'
+                        }`} style={{ borderRadius: '0 0 0 100%' }}></div>
 
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="flex-1 flex gap-6 items-start">
-                          <div className={`p-4 rounded-2xl ${
-                            booking.status === 'Completed' ? 'bg-green-50 text-green-600' :
+                          <div className={`p-4 rounded-2xl ${booking.status === 'Completed' ? 'bg-green-50 text-green-600' :
                             booking.status === 'Cancelled' ? 'bg-red-50 text-red-600' :
-                            'bg-primary-50 text-primary-600'
-                          }`}>
+                              'bg-primary-50 text-primary-600'
+                            }`}>
                             <Calendar className="w-8 h-8" />
                           </div>
-                          
+
                           <div>
                             <div className="flex items-center gap-3 mb-1">
                               <h3 className="text-xl font-black text-gray-900 tracking-tighter">
                                 #{booking.bookingId}
                               </h3>
-                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                booking.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' :
+                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${booking.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' :
                                 booking.status === 'Cancelled' ? 'bg-rose-100 text-rose-700' :
-                                booking.status === 'Completed' ? 'bg-sky-100 text-sky-700' :
-                                booking.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
-                                'bg-gray-100 text-gray-700'
-                              }`}>
+                                  booking.status === 'Completed' ? 'bg-sky-100 text-sky-700' :
+                                    booking.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
+                                      'bg-gray-100 text-gray-700'
+                                }`}>
                                 {booking.status}
                               </span>
                             </div>
-                            
+
                             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
-                              {new Date(booking.date).toLocaleDateString('en-IN', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric' 
+                              {new Date(booking.date).toLocaleDateString('en-IN', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
                               })}
                             </p>
 
@@ -231,7 +228,7 @@ export default function ProfilePage() {
                               <p className="text-2xl font-black text-primary-600 tracking-[0.15em] leading-none">{booking.collectionOtp}</p>
                             </div>
                           )}
-                          
+
                           {(booking.status === 'In Progress' || booking.status === 'On My Way' || booking.status === 'Arrived' || (booking.journeyStarted && booking.status === 'Confirmed')) && (
                             <button
                               onClick={(e) => {
@@ -248,7 +245,7 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {bookings.length > 5 && (
                     <button className="text-primary-500 hover:text-primary-600 text-sm font-medium">
                       View all bookings →
@@ -262,7 +259,7 @@ export default function ProfilePage() {
 
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <button 
+          <button
             onClick={() => router.push('/tests')}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition text-left"
           >
@@ -271,7 +268,7 @@ export default function ProfilePage() {
             <p className="text-sm text-gray-600">Explore our test catalog</p>
           </button>
 
-          <button 
+          <button
             onClick={() => router.push('/booking')}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition text-left"
           >

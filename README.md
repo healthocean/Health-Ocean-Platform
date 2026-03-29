@@ -86,7 +86,7 @@ sudo systemctl start mongod
 
 # 2. Start API Server (Backend)
 ./START_API.sh
-# Runs on http://localhost:4000
+# Runs on http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app
 
 # 3. Start Web App (Customer Site)
 ./START_WEB.sh
@@ -112,7 +112,7 @@ npm run create-superadmin
 - **Customer Website:** http://localhost:3000
 - **Lab Portal:** http://localhost:3001
 - **Admin Portal:** http://localhost:3002 🛡️
-- **API Server:** http://localhost:4000
+- **API Server:** http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app
 
 ### Manual Start
 

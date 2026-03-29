@@ -41,7 +41,7 @@ export default function PackagesPage() {
 
   const fetchPackages = async (labId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/${labId}/packages`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/packages`);
       const data = await res.json();
       if (data.success) {
         setPackages(data.packages);
@@ -58,7 +58,7 @@ export default function PackagesPage() {
   const toggleStatus = async (pkg: PackageItem) => {
     const newStatus = pkg.status === 'Active' ? 'Inactive' : 'Active';
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/packages/${pkg._id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/packages/${pkg._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),

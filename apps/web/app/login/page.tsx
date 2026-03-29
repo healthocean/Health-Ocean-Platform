@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://10.29.34.207:4000/api/users/login', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL}/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,10 +36,10 @@ export default function LoginPage() {
       if (data.success) {
         // Store token and user data
         setAuth(data.token, data.user);
-        
+
         // Dispatch event to update header
         window.dispatchEvent(new Event('auth-change'));
-        
+
         // Redirect to home
         router.push('/');
       } else {
@@ -60,7 +60,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-md mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">Welcome Back</h1>

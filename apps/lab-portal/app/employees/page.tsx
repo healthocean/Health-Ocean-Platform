@@ -53,7 +53,7 @@ export default function EmployeesPage() {
 
   const fetchEmployees = async (labId: string) => {
     try {
-      const res = await fetch(`http://localhost:4000/api/labs/${labId}/employees`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/employees`);
       const data = await res.json();
       if (data.success) {
         setEmployees(data.employees);

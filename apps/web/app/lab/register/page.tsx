@@ -67,7 +67,7 @@ export default function LabRegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://10.29.34.207:4000/api/labs/register', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL}/labs/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export default function LabRegisterPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center mb-8">
@@ -347,11 +347,10 @@ export default function LabRegisterPage() {
                     key={service}
                     type="button"
                     onClick={() => handleServiceToggle(service)}
-                    className={`p-3 rounded-lg border-2 text-sm font-medium transition ${
-                      formData.servicesOffered.includes(service)
+                    className={`p-3 rounded-lg border-2 text-sm font-medium transition ${formData.servicesOffered.includes(service)
                         ? 'border-primary-500 bg-primary-50 text-primary-700'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     {service}
                   </button>

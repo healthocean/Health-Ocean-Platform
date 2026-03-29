@@ -48,7 +48,7 @@ export default function EmployeeRegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://10.29.34.207:4000/api/labs/employees/register', {
+      const response = await fetch('${process.env.NEXT_PUBLIC_API_URL}/labs/employees/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export default function EmployeeRegisterPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center mb-8">

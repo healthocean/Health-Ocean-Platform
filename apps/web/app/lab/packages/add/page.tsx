@@ -42,7 +42,7 @@ export default function AddPackagePage() {
 
   const loadTests = async (labId: string) => {
     try {
-      const response = await fetch(`http://10.29.34.207:4000/api/labs/${labId}/tests`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/tests`);
       const data = await response.json();
       if (data.success) {
         setTests(data.tests.filter((t: Test) => t));
@@ -112,7 +112,7 @@ export default function AddPackagePage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://10.29.34.207:4000/api/labs/${labId}/packages`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/packages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ export default function AddPackagePage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => router.back()}

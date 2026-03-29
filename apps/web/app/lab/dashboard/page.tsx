@@ -57,8 +57,8 @@ export default function LabDashboardPage() {
   const loadData = async (labId: string) => {
     try {
       const [testsRes, packagesRes] = await Promise.all([
-        fetch(`http://10.29.34.207:4000/api/labs/${labId}/tests`),
-        fetch(`http://10.29.34.207:4000/api/labs/${labId}/packages`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/tests`),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/packages`),
       ]);
 
       const testsData = await testsRes.json();
@@ -99,7 +99,7 @@ export default function LabDashboardPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -109,11 +109,10 @@ export default function LabDashboardPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{lab.name}</h1>
                 <p className="text-gray-600">{lab.email} • {lab.city}</p>
-                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${
-                  lab.status === 'Approved' ? 'bg-green-100 text-green-700' :
-                  lab.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
+                <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-medium ${lab.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                    lab.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                  }`}>
                   {lab.status}
                 </span>
               </div>
@@ -146,11 +145,10 @@ export default function LabDashboardPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-6 py-4 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-6 py-4 border-b-2 font-medium text-sm ${activeTab === tab.id
                       ? 'border-primary-500 text-primary-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
@@ -229,9 +227,8 @@ export default function LabDashboardPage() {
                               {test.originalPrice && (
                                 <span className="text-sm text-gray-400 line-through">₹{test.originalPrice}</span>
                               )}
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                test.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                              }`}>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${test.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                }`}>
                                 {test.status}
                               </span>
                             </div>
@@ -290,9 +287,8 @@ export default function LabDashboardPage() {
                             <div className="flex items-center gap-4 mt-2">
                               <span className="text-lg font-bold text-primary-600">₹{pkg.price}</span>
                               <span className="text-sm text-gray-400 line-through">₹{pkg.originalPrice}</span>
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                pkg.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                              }`}>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${pkg.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                                }`}>
                                 {pkg.status}
                               </span>
                             </div>

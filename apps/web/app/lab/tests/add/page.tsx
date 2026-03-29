@@ -68,7 +68,7 @@ export default function AddTestPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://10.29.34.207:4000/api/labs/${labId}/tests`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/labs/${labId}/tests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ export default function AddTestPage() {
   return (
     <main className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <button
           onClick={() => router.back()}

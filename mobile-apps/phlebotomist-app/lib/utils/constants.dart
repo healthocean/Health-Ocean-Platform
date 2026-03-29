@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ApiConstants {
-  static const String baseUrl = 'http://10.29.34.207:4000/api';
+  static const String baseUrl = 'http://10.49.253.207:4000/api';
 
   static const String login = '$baseUrl/labs/employees/login';
   static const String labInfo = '$baseUrl/labs'; // GET /api/labs/:id

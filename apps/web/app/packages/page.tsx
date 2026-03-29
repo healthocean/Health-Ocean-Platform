@@ -63,7 +63,7 @@ export default function PackagesPage() {
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (selectedCategory !== 'All') params.set('category', selectedCategory);
-      
+
       // Location Filtering
       if (currentLocation?.lat && currentLocation?.lng) {
         params.set('lat', currentLocation.lat.toString());
@@ -76,13 +76,13 @@ export default function PackagesPage() {
       params.set('page', reset ? '1' : page.toString());
       params.set('limit', '10');
 
-      const res = await fetch(`http://10.29.34.207:4000/api/packages?${params}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/packages?${params}`);
       const data = await res.json();
       setPackages(prev => reset ? (data.packages ?? []) : [...prev, ...(data.packages ?? [])]);
       setTotalPages(data.totalPages ?? 1);
 
       if (categories.length === 1) {
-        const catRes = await fetch('http://10.29.34.207:4000/api/packages/meta/categories');
+        const catRes = await fetch('${process.env.NEXT_PUBLIC_API_URL}/packages/meta/categories');
         const catData = await catRes.json();
         setCategories(['All', ...(catData.categories ?? [])]);
       }
@@ -138,11 +138,10 @@ export default function PackagesPage() {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-8 py-3 rounded-full whitespace-nowrap text-sm font-black tracking-wider transition-all duration-300 ${
-                selectedCategory === cat
+              className={`px-8 py-3 rounded-full whitespace-nowrap text-sm font-black tracking-wider transition-all duration-300 ${selectedCategory === cat
                   ? 'bg-primary-600 text-white shadow-xl shadow-primary-200 scale-105'
                   : 'bg-white text-gray-600 hover:bg-gray-100 hover:shadow-md'
-              }`}
+                }`}
             >
               {cat}
             </button>
@@ -231,11 +230,10 @@ export default function PackagesPage() {
                         });
                       }
                     }}
-                    className={`w-full py-5 rounded-[24px] font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-sm ${
-                      inCart
+                    className={`w-full py-5 rounded-[24px] font-black text-[10px] tracking-[0.2em] uppercase transition-all duration-300 flex items-center justify-center gap-3 shadow-sm ${inCart
                         ? 'bg-red-50 text-red-600 hover:bg-red-100 border-2 border-red-100'
                         : 'bg-gray-900 text-white hover:bg-black hover:shadow-xl hover:translate-y-[-2px]'
-                    }`}
+                      }`}
                   >
                     {inCart ? <Trash2 className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
                     {inCart ? 'REMOVE PACKAGE' : 'BOOK PACKAGE'}
@@ -261,15 +259,15 @@ export default function PackagesPage() {
 
         {/* Info Banner */}
         <div className="mt-20 flex items-center gap-6 p-8 bg-blue-50/50 rounded-[40px] border-2 border-dashed border-blue-100">
-           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-blue-600">
-              <Info className="w-8 h-8" />
-           </div>
-           <div>
-             <h4 className="text-lg font-black text-blue-900 mb-1">Personalized Laboratory Network</h4>
-             <p className="text-sm text-blue-700 font-medium opacity-80 max-w-2xl">
-               Results are filtered within a 50km radius of your current location to ensure rapid home sample collection and timely report generation. Change your location above to explore labs in different areas.
-             </p>
-           </div>
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-blue-600">
+            <Info className="w-8 h-8" />
+          </div>
+          <div>
+            <h4 className="text-lg font-black text-blue-900 mb-1">Personalized Laboratory Network</h4>
+            <p className="text-sm text-blue-700 font-medium opacity-80 max-w-2xl">
+              Results are filtered within a 50km radius of your current location to ensure rapid home sample collection and timely report generation. Change your location above to explore labs in different areas.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -15,7 +15,7 @@ Administrative dashboard for Health Ocean platform management.
 ### Prerequisites
 
 - Node.js 18+ installed
-- API server running on `http://localhost:4000`
+- API server running on `http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app`
 - MongoDB running
 
 ### Installation
@@ -56,7 +56,7 @@ The admin portal runs on port 3002 by default:
 - **Main Website:** http://localhost:3000
 - **Lab Portal:** http://localhost:3001
 - **Admin Portal:** http://localhost:3002 ⭐
-- **API Server:** http://localhost:4000
+- **API Server:** http://https://ada5-2401-4900-7083-fd76-b652-92d9-1ad3-fb9c.ngrok-free.app
 
 ## Key Features
 
