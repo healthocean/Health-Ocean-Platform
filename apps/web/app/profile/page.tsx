@@ -60,7 +60,7 @@ export default function ProfilePage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Section */}
-        <div className="bg-gray-900 rounded-[40px] p-12 text-white mb-12 relative overflow-hidden shadow-2xl">
+        <div className="bg-gradient-to-br from-[#03045e] to-[#0077b6] rounded-[40px] p-12 text-white mb-12 relative overflow-hidden shadow-2xl">
           <div className="relative z-10">
             <h1 className="text-5xl font-black mb-4 tracking-tighter leading-none">Your Health Profile</h1>
             <p className="text-gray-400 text-xl font-medium max-w-lg">Welcome back, {user?.name}! Manage your medical journey and view reports from one secure place.</p>

@@ -106,6 +106,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/tests/by-test-id/:testId - lookup by custom testId field
+router.get('/by-test-id/:testId', async (req, res) => {
+  try {
+    const test = await LabTest.findOne({ testId: req.params.testId }).select('testId name');
+    if (!test) return res.status(404).json({ error: 'Test not found' });
+    res.json({ testId: test.testId, name: test.name });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/tests/meta/categories - Get distinct categories
 router.get('/meta/categories', async (req, res) => {
   try {

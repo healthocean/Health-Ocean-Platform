@@ -1,73 +1,14 @@
 'use client';
 
-import { Search, MapPin, Phone, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { Phone, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function Hero() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [location, setLocation] = useState('Mumbai');
   const router = useRouter();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push('/tests');
-  };
 
   return (
     <section className="bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="mb-8">
-          <div className="flex flex-col md:flex-row gap-3 items-center">
-            {/* Location Selector */}
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="w-4 h-4 text-gray-600" />
-              <select 
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="border-none outline-none bg-transparent font-medium cursor-pointer"
-              >
-                <option>Mumbai</option>
-                <option>Delhi</option>
-                <option>Bangalore</option>
-                <option>Pune</option>
-                <option>Hyderabad</option>
-              </select>
-            </div>
-
-            {/* Search Input */}
-            <div className="flex-1 w-full">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search for Tests/Packages/Labs"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary-500"
-                />
-              </div>
-            </div>
-
-            {/* Search Button */}
-            <button type="submit" className="btn btn-primary px-8">
-              Search
-            </button>
-
-            {/* Right side buttons */}
-            <div className="hidden lg:flex items-center gap-4">
-              <button className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-500">
-                <Phone className="w-4 h-4" />
-                Download App
-              </button>
-              <button className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-500">
-                <Upload className="w-4 h-4" />
-                Offers
-              </button>
-            </div>
-          </div>
-        </form>
 
         {/* Hero Banners */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">

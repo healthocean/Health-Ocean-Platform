@@ -499,6 +499,133 @@ router.get('/analytics', verifyAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/health - Platform health monitoring
+router.get('/health', verifyAdmin, async (req, res) => {
+  const checks: any = { timestamp: new Date().toISOString(), services: [] };
+  
+  try {
+    // 1. Database connectivity & performance
+    const dbStart = Date.now();
+    try {
+      const mongoose = require('mongoose');
+      await mongoose.connection.db.admin().ping();
+      const dbLatency = Date.now() - dbStart;
+      checks.services.push({
+        name: 'Database',
+        status: dbLatency < 100 ? 'healthy' : dbLatency < 500 ? 'degraded' : 'slow',
+        latency: dbLatency,
+        details: `${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`,
+      });
+    } catch (e) {
+      checks.services.push({ name: 'Database', status: 'down', error: 'Connection failed' });
+    }
+
+    // 2. API response time (self-check via simple query)
+    const apiStart = Date.now();
+    try {
+      await Admin.findOne().limit(1);
+      const apiLatency = Date.now() - apiStart;
+      checks.services.push({
+        name: 'API Server',
+        status: apiLatency < 50 ? 'healthy' : apiLatency < 200 ? 'degraded' : 'slow',
+        latency: apiLatency,
+      });
+    } catch (e) {
+      checks.services.push({ name: 'API Server', status: 'error', error: 'Query failed' });
+    }
+
+    // 3. Data integrity checks
+    const integrityStart = Date.now();
+    try {
+      const [labsWithoutLocation, bookingsWithoutLab, usersWithoutEmail] = await Promise.all([
+        Lab.countDocuments({ $or: [{ location: null }, { 'location.coordinates': { $size: 0 } }] }),
+        Booking.countDocuments({ labId: { $in: [null, ''] } }),
+        User.countDocuments({ email: { $in: [null, ''] } }),
+      ]);
+      const totalIssues = labsWithoutLocation + bookingsWithoutLab + usersWithoutEmail;
+      checks.services.push({
+        name: 'Data Integrity',
+        status: totalIssues === 0 ? 'healthy' : totalIssues < 10 ? 'warning' : 'critical',
+        issues: totalIssues,
+        details: `${labsWithoutLocation} labs missing location, ${bookingsWithoutLab} orphaned bookings, ${usersWithoutEmail} invalid users`,
+        latency: Date.now() - integrityStart,
+      });
+    } catch (e) {
+      checks.services.push({ name: 'Data Integrity', status: 'error', error: 'Check failed' });
+    }
+
+    // 4. Lab approval queue health
+    const queueStart = Date.now();
+    try {
+      const pendingCount = await Lab.countDocuments({ status: 'Pending' });
+      const oldestPending = await Lab.findOne({ status: 'Pending' }).sort({ createdAt: 1 });
+      const daysPending = oldestPending
+        ? Math.floor((Date.now() - new Date(oldestPending.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      checks.services.push({
+        name: 'Lab Approval Queue',
+        status: pendingCount === 0 ? 'healthy' : pendingCount < 5 ? 'normal' : daysPending > 7 ? 'critical' : 'warning',
+        pending: pendingCount,
+        oldestDays: daysPending,
+        latency: Date.now() - queueStart,
+      });
+    } catch (e) {
+      checks.services.push({ name: 'Lab Approval Queue', status: 'error', error: 'Check failed' });
+    }
+
+    // 5. Booking system health
+    const bookingStart = Date.now();
+    try {
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const recentBookings = await Booking.countDocuments({ createdAt: { $gte: last24h } });
+      const failedBookings = await Booking.countDocuments({
+        createdAt: { $gte: last24h },
+        status: { $in: ['Cancelled', 'Failed'] },
+      });
+      const failureRate = recentBookings > 0 ? (failedBookings / recentBookings) * 100 : 0;
+      checks.services.push({
+        name: 'Booking System',
+        status: failureRate < 5 ? 'healthy' : failureRate < 15 ? 'degraded' : 'critical',
+        last24h: recentBookings,
+        failureRate: failureRate.toFixed(1) + '%',
+        latency: Date.now() - bookingStart,
+      });
+    } catch (e) {
+      checks.services.push({ name: 'Booking System', status: 'error', error: 'Check failed' });
+    }
+
+    // 6. User authentication health (recent login activity)
+    const authStart = Date.now();
+    try {
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const [recentUsers, recentLabs] = await Promise.all([
+        User.countDocuments({ lastLogin: { $gte: last24h } }),
+        Lab.countDocuments({ lastLogin: { $gte: last24h } }),
+      ]);
+      const totalActiveUsers = recentUsers + recentLabs;
+      checks.services.push({
+        name: 'Authentication System',
+        status: 'healthy',
+        last24h: totalActiveUsers,
+        details: `${recentUsers} users, ${recentLabs} labs logged in`,
+        latency: Date.now() - authStart,
+      });
+    } catch (e) {
+      checks.services.push({ name: 'Authentication System', status: 'error', error: 'Check failed' });
+    }
+
+    // Overall status
+    const criticalCount = checks.services.filter((s: any) => s.status === 'critical' || s.status === 'down').length;
+    const warningCount = checks.services.filter((s: any) => s.status === 'warning' || s.status === 'degraded' || s.status === 'slow').length;
+    checks.overall = criticalCount > 0 ? 'critical' : warningCount > 0 ? 'degraded' : 'healthy';
+
+    res.json({ success: true, health: checks });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({ success: false, message: 'Health check failed', error: String(error) });
+  }
+});
+
 // ============ SUPERADMIN ONLY ROUTES ============
 
 // GET /api/admin/admins - Get all admins (SuperAdmin only)

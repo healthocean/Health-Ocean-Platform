@@ -70,9 +70,58 @@ app.use('/api/users', userRoutes);
 app.use('/api/labs', labRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check with detailed metrics
+app.get('/health', async (req, res) => {
+  const startTime = Date.now();
+  const health: any = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    services: {},
+  };
+
+  try {
+    // Check database connectivity
+    const mongoose = require('mongoose');
+    const dbState = mongoose.connection.readyState;
+    const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+    health.services.database = {
+      status: dbState === 1 ? 'healthy' : 'unhealthy',
+      state: dbStatus,
+      responseTime: 0,
+    };
+
+    // Test database query performance
+    if (dbState === 1) {
+      const dbStart = Date.now();
+      try {
+        await mongoose.connection.db.admin().ping();
+        health.services.database.responseTime = Date.now() - dbStart;
+      } catch (e) {
+        health.services.database.status = 'unhealthy';
+        health.services.database.error = 'Ping failed';
+      }
+    }
+
+    // Memory usage
+    const memUsage = process.memoryUsage();
+    health.memory = {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+      rss: Math.round(memUsage.rss / 1024 / 1024),
+    };
+
+    // Overall health
+    const allHealthy = Object.values(health.services).every((s: any) => s.status === 'healthy');
+    health.status = allHealthy ? 'healthy' : 'degraded';
+    health.responseTime = Date.now() - startTime;
+
+    res.status(allHealthy ? 200 : 503).json(health);
+  } catch (error) {
+    health.status = 'unhealthy';
+    health.error = 'Health check failed';
+    res.status(503).json(health);
+  }
 });
 
 app.listen(PORT, () => {

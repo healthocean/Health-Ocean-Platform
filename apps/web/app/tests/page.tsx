@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { Search, ShoppingCart, TestTube, MapPin, Trash2 } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, Trash2 } from 'lucide-react';
 import { addToCart, removeFromCart, getCart } from '@/lib/cart';
 import { useRouter } from 'next/navigation';
 import { useLocation } from '@/contexts/LocationContext';
@@ -35,6 +35,7 @@ export default function TestsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [categories, setCategories] = useState<string[]>(['All']);
   const [cart, setCart] = useState<string[]>([]);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCart(getCart().map(item => item.id));
@@ -43,28 +44,14 @@ export default function TestsPage() {
     return () => window.removeEventListener('cart-change', handleCartChange);
   }, []);
 
-  useEffect(() => {
-    fetchTests(true);
-  }, [searchQuery, selectedCategory, currentLocation]);
-
-  useEffect(() => {
-    if (page > 1) fetchTests(false);
-  }, [page, currentLocation]);
-
-  const fetchTests = async (reset = false) => {
-    if (reset) {
-      setLoading(true);
-      setPage(1);
-    } else {
-      setLoadingMore(true);
-    }
+  const fetchTests = useCallback(async (reset = false, overridePage?: number) => {
+    if (reset) setLoading(true);
+    else setLoadingMore(true);
 
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.set('search', searchQuery);
       if (selectedCategory !== 'All') params.set('category', selectedCategory);
-
-      // Location Filtering
       if (currentLocation?.lat && currentLocation?.lng) {
         params.set('lat', currentLocation.lat.toString());
         params.set('lng', currentLocation.lng.toString());
@@ -72,18 +59,16 @@ export default function TestsPage() {
         params.set('pincode', currentLocation.pincode);
       }
       params.set('radius', '50');
-
-      params.set('page', reset ? '1' : page.toString());
-      params.set('limit', '10');
+      params.set('page', reset ? '1' : (overridePage ?? page).toString());
+      params.set('limit', '12');
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests?${params}`);
       const data = await res.json();
       setTests(prev => reset ? (data.tests ?? []) : [...prev, ...(data.tests ?? [])]);
       setTotalPages(data.totalPages ?? 1);
 
-      // Build category list from results if not yet loaded
       if (categories.length === 1) {
-        const catRes = await fetch('${process.env.NEXT_PUBLIC_API_URL}/tests/meta/categories');
+        const catRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/tests/meta/categories`);
         const catData = await catRes.json();
         setCategories(['All', ...(catData.categories ?? [])]);
       }
@@ -93,7 +78,30 @@ export default function TestsPage() {
       if (reset) setLoading(false);
       else setLoadingMore(false);
     }
-  };
+  }, [searchQuery, selectedCategory, currentLocation, page, categories.length]);
+
+  // Reset on filter/location change
+  useEffect(() => {
+    setPage(1);
+    fetchTests(true);
+  }, [searchQuery, selectedCategory, currentLocation]);
+
+  // Infinite scroll via IntersectionObserver
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && !loading && page < totalPages) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          fetchTests(false, nextPage);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [loadingMore, loading, page, totalPages]);
 
   const handleAddToCart = (test: Test) => {
     addToCart({
@@ -132,7 +140,7 @@ export default function TestsPage() {
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               className={`px-6 py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition ${selectedCategory === cat
-                  ? 'bg-gray-900 text-white shadow-lg'
+                  ? 'bg-[#0077b6] text-white shadow-lg'
                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                 }`}
             >
@@ -145,7 +153,7 @@ export default function TestsPage() {
         {/* Results */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900" />
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0077b6]" />
           </div>
         ) : tests.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100 p-12">
@@ -162,17 +170,19 @@ export default function TestsPage() {
                 : 0;
 
               return (
-                <div key={test.id} className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 flex flex-col group">
+                <div key={test.id} className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 flex flex-col group relative overflow-hidden">
+                  {discount > 0 && (
+                    <div className="absolute top-0 right-0 w-24 h-24 overflow-hidden rounded-tr-[32px] pointer-events-none">
+                      <div className="absolute top-4 right-[-22px] w-28 bg-green-500 text-white text-[10px] font-bold py-1.5 text-center rotate-45 shadow-md tracking-wider">
+                        {discount}% OFF
+                      </div>
+                    </div>
+                  )}
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-4">
                       <div className="bg-primary-50 text-primary-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest">
                         {test.category}
                       </div>
-                      {discount > 0 && (
-                        <span className="flex-shrink-0 bg-green-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full">
-                          {discount}% OFF
-                        </span>
-                      )}
                     </div>
 
                     <h3 className="text-lg font-black text-gray-900 mb-2 leading-tight group-hover:text-primary-600 transition-colors line-clamp-2">{test.name}</h3>
@@ -211,7 +221,7 @@ export default function TestsPage() {
                     onClick={() => inCart ? removeFromCart(test.id) : handleAddToCart(test)}
                     className={`w-full py-4 rounded-2xl font-black text-xs tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${inCart
                         ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100'
-                        : 'bg-gray-900 text-white hover:bg-black hover:shadow-lg'
+                        : 'bg-[#0077b6] text-white hover:bg-[#03045e] hover:shadow-lg'
                       }`}
                   >
                     {inCart ? <Trash2 className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
@@ -223,17 +233,12 @@ export default function TestsPage() {
           </div>
         )}
 
-        {!loading && page < totalPages && (
-          <div className="mt-12 flex justify-center">
-            <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={loadingMore}
-              className="px-10 py-4 bg-white border-2 border-gray-100 text-gray-900 font-black text-xs tracking-widest rounded-2xl hover:border-gray-900 transition-all disabled:opacity-50"
-            >
-              {loadingMore ? 'LOADING...' : 'LOAD MORE TESTS'}
-            </button>
-          </div>
-        )}
+        {/* Infinite scroll sentinel */}
+        <div ref={sentinelRef} className="h-10 mt-8 flex items-center justify-center">
+          {loadingMore && (
+            <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#caf0f8] border-t-[#0077b6]" />
+          )}
+        </div>
       </div>
 
       <Footer />

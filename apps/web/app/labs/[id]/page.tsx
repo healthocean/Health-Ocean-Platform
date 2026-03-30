@@ -6,54 +6,27 @@ import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import {
-  MapPin, Star, Phone, Mail, Clock, ShieldCheck,
-  Map as MapIcon, ChevronRight, TestTube, Package as PackageIcon,
-  ArrowLeft, ShoppingCart, Trash2, Award, Zap, Activity, Filter,
-  Search, Info, CheckCircle2, Bookmark, Navigation as NavigationIcon
+  MapPin, Star, Clock, ShieldCheck, TestTube, Package as PackageIcon,
+  ArrowLeft, ShoppingCart, Trash2, Award, Activity, CheckCircle2,
+  Navigation as NavigationIcon, Phone,
 } from 'lucide-react';
 import { addToCart, removeFromCart, getCart } from '@/lib/cart';
 
 interface Lab {
-  _id: string;
-  labId: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  status: string;
-  nablCertificate: string;
-  establishedYear: number;
-  location?: {
-    type: string;
-    coordinates: number[];
-  };
+  _id: string; labId: string; name: string; email: string; phone: string;
+  address: string; city: string; state: string; pincode: string; status: string;
+  nablCertificate: string; establishedYear: number;
+  location?: { type: string; coordinates: number[] };
 }
-
 interface Test {
-  _id: string;
-  testId: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice?: number;
-  category: string;
-  turnaroundTime: string;
-  sampleType: string;
+  _id: string; testId: string; name: string; description: string;
+  price: number; originalPrice?: number; category: string;
+  turnaroundTime: string; sampleType: string;
 }
-
 interface LabPackage {
-  _id: string;
-  packageId: string;
-  name: string;
-  description: string;
-  price: number;
-  originalPrice: number;
-  category: string;
-  testsIncluded: string[];
-  features: string[];
+  _id: string; packageId: string; name: string; description: string;
+  price: number; originalPrice: number; category: string;
+  testsIncluded: string[]; features: string[];
 }
 
 export default function LabProfilePage() {
@@ -78,22 +51,18 @@ export default function LabProfilePage() {
   useEffect(() => {
     const fetchLabData = async () => {
       try {
-        const apiUrl = '${process.env.NEXT_PUBLIC_API_URL}';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         const labRes = await fetch(`${apiUrl}/labs/details/${id}`);
         const labData = await labRes.json();
-
         if (labData.success) {
           const labInfo = labData.lab;
           setLab(labInfo);
-
           const [testsRes, packagesRes] = await Promise.all([
             fetch(`${apiUrl}/labs/${labInfo.labId}/tests`),
-            fetch(`${apiUrl}/labs/${labInfo.labId}/packages`)
+            fetch(`${apiUrl}/labs/${labInfo.labId}/packages`),
           ]);
-
           const testsData = await testsRes.json();
           const packagesData = await packagesRes.json();
-
           setTests(testsData.tests || []);
           setPackages(packagesData.packages || []);
         }
@@ -103,27 +72,26 @@ export default function LabProfilePage() {
         setLoading(false);
       }
     };
-
     if (id) fetchLabData();
   }, [id]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-        <div className="w-10 h-10 bg-gray-900 rounded-full animate-bounce flex items-center justify-center shadow-xl">
-          <Activity className="w-5 h-5 text-white animate-pulse" />
-        </div>
-        <p className="mt-6 text-[10px] font-black text-gray-400 tracking-[0.6em] uppercase">Authorized Diagnostic Node</p>
+      <div className="min-h-screen bg-gradient-to-br from-[#caf0f8] to-white flex flex-col items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-[#caf0f8] border-t-[#0077b6] animate-spin" />
+        <p className="mt-4 text-sm font-semibold text-[#0077b6]">Loading lab details...</p>
       </div>
     );
   }
 
   if (!lab) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <MapPin className="w-12 h-12 text-gray-100 mb-6" />
-        <h1 className="text-xl font-black text-gray-900 uppercase">Center Not Located</h1>
-        <button onClick={() => router.back()} className="mt-8 px-8 py-3 bg-gray-900 text-white font-black text-[9px] tracking-widest rounded-full uppercase">Return</button>
+      <div className="min-h-screen bg-gradient-to-br from-[#caf0f8] to-white flex flex-col items-center justify-center p-6 text-center">
+        <MapPin className="w-12 h-12 text-[#90e0ef] mb-4" />
+        <h1 className="text-xl font-bold text-[#03045e]">Lab Not Found</h1>
+        <button onClick={() => router.back()} className="mt-6 px-6 py-2.5 bg-[#0077b6] text-white font-semibold rounded-xl hover:bg-[#03045e] transition-all">
+          Go Back
+        </button>
       </div>
     );
   }
@@ -132,246 +100,256 @@ export default function LabProfilePage() {
   const labLng = lab.location?.coordinates[0] || 88.3639;
 
   return (
-    <main className="min-h-screen bg-white text-gray-900 overflow-x-hidden">
+    <main className="min-h-screen bg-[#f0fbff]">
       <Header />
 
-      {/* Premium Rich Hero Section */}
-      <div className="relative pt-12 pb-24 overflow-hidden border-b border-gray-100 bg-[#fafafa]">
-        {/* Background Decorative Pattern */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
-        <div className="absolute -right-64 -top-64 w-[800px] h-[800px] bg-primary-100/40 rounded-full blur-[160px] pointer-events-none" />
-        <div className="absolute -left-64 bottom-0 w-[600px] h-[600px] bg-blue-100/30 rounded-full blur-[140px] pointer-events-none" />
+      {/* Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#03045e] via-[#0077b6] to-[#00b4d8] pt-10 pb-20 px-4">
+        {/* Decorative blobs */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#90e0ef]/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-[#caf0f8]/10 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row gap-16 items-center">
+        <div className="max-w-6xl mx-auto relative z-10">
+          {/* Back + badge */}
+          <div className="flex items-center gap-3 mb-8">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white text-xs font-semibold transition-all backdrop-blur-sm"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back
+            </button>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-xl backdrop-blur-sm">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#90e0ef]" />
+              <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest">{lab.labId}</span>
+            </div>
+          </div>
 
-            {/* Left: Rich Content Column */}
-            <div className="flex-1 w-full text-center lg:text-left">
-              <div className="flex flex-col lg:flex-row items-center gap-4 mb-10">
-                <button
-                  onClick={() => router.back()}
-                  className="px-5 py-2.5 bg-white border border-gray-200 rounded-full text-gray-400 hover:text-gray-900 hover:border-gray-900 transition-all shadow-sm flex items-center gap-2 group"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Back</span>
-                </button>
-                <div className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-full shadow-lg">
-                  <ShieldCheck className="w-3.5 h-3.5 text-primary-400" />
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em]">Partner ID: {lab.labId}</span>
-                </div>
-              </div>
-
-              <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.8] mb-12 uppercase italic text-gray-900 group">
+          <div className="grid lg:grid-cols-2 gap-10 items-start">
+            {/* Left */}
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-6 tracking-tight">
                 {lab.name}
               </h1>
 
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 mb-12">
-                <div className="px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-xl flex items-center gap-3">
-                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-                  <span className="text-lg font-black">{randomRating}</span>
-                  <div className="w-[1px] h-4 bg-gray-200" />
-                  <span className="text-[9px] font-black tracking-widest text-gray-400 uppercase">{randomReviews} Verified Reviews</span>
+              {/* Rating + Est */}
+              <div className="flex flex-wrap gap-3 mb-8">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span className="text-white font-bold">{randomRating}</span>
+                  <span className="text-white/50 text-xs">({randomReviews} reviews)</span>
                 </div>
-                <div className="px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-lg flex items-center gap-3">
-                  <Award className="w-4 h-4 text-blue-500" />
-                  <span className="text-[9px] font-black tracking-widest text-gray-900 uppercase">Est. YEAR {lab.establishedYear}</span>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl">
+                  <Award className="w-4 h-4 text-[#90e0ef]" />
+                  <span className="text-white text-xs font-semibold">Est. {lab.establishedYear}</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-green-500/20 backdrop-blur-md border border-green-400/30 rounded-2xl">
+                  <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-green-300 text-xs font-semibold">Open Now</span>
                 </div>
               </div>
 
-              {/* Glassmorphic Info Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:pr-12">
-                <div className="p-6 bg-white/60 backdrop-blur-md rounded-[32px] border border-white shadow-xl shadow-gray-200/20 group hover:shadow-2xl transition-all">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg">
-                      <MapPin className="w-5 h-5" />
+              {/* Info cards — glassmorphism */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 bg-[#0077b6] rounded-lg flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-white" />
                     </div>
-                    <div>
-                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">LOCAL HUB</p>
-                      <p className="text-xs font-black uppercase italic tracking-tighter leading-tight">{lab.address}, {lab.city}<br />{lab.pincode}</p>
-                    </div>
+                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Address</p>
                   </div>
+                  <p className="text-sm text-white font-medium leading-relaxed">{lab.address}, {lab.city}, {lab.pincode}</p>
                 </div>
-                <div className="p-6 bg-white/60 backdrop-blur-md rounded-[32px] border border-white shadow-xl shadow-gray-200/20 group hover:shadow-2xl transition-all">
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg">
-                      <Clock className="w-5 h-5" />
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 bg-[#00b4d8] rounded-lg flex items-center justify-center">
+                      <Phone className="w-4 h-4 text-white" />
                     </div>
-                    <div>
-                      <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">AVAILABILITY</p>
-                      <p className="text-xs font-black uppercase italic tracking-tighter leading-tight">Opened 08:00 AM<br />Current Status: ACTIVE</p>
-                    </div>
+                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest">Contact</p>
                   </div>
+                  <p className="text-sm text-white font-medium">{lab.phone}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{lab.email}</p>
                 </div>
               </div>
             </div>
 
-            {/* Right: Premium Map Terminal */}
-            <div className="lg:col-span-1 w-full lg:w-[480px]">
-              <div className="aspect-square bg-white rounded-[64px] p-4 shadow-3xl overflow-hidden border border-gray-100 relative group">
-                <div className="w-full h-full rounded-[50px] overflow-hidden relative shadow-inner">
-                  {/* Fixed OpenStreetMap with Limited Navigation & High Zoom */}
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0, filter: 'saturate(1.2)' }}
-                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${labLng - 0.005}%2C${labLat - 0.005}%2C${labLng + 0.005}%2C${labLat + 0.005}&layer=mapnik&marker=${labLat}%2C${labLng}`}
-                  />
-                  {/* Zoom Blocker Overlay (Pseudo) */}
-                  <div className="absolute inset-0 pointer-events-none ring-[12px] ring-white ring-inset rounded-[50px]" />
+            {/* Right — Map */}
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-3 shadow-2xl">
+              <div className="rounded-2xl overflow-hidden h-72 relative">
+                <iframe
+                  width="100%" height="100%"
+                  style={{ border: 0 }}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${labLng - 0.005}%2C${labLat - 0.005}%2C${labLng + 0.005}%2C${labLat + 0.005}&layer=mapnik&marker=${labLat}%2C${labLng}`}
+                />
+              </div>
+              <div className="flex items-center justify-between px-3 pt-3 pb-1">
+                <div className="flex items-center gap-2">
+                  <NavigationIcon className="w-4 h-4 text-[#90e0ef]" />
+                  <span className="text-xs font-semibold text-white/70">{lab.city}, {lab.state}</span>
                 </div>
-
-                {/* Floating Action Box */}
-                <div className="absolute inset-x-8 bottom-8">
-                  <div className="bg-gray-900/95 backdrop-blur-xl text-white p-6 rounded-[32px] shadow-3xl flex items-center justify-between border border-white/10 group-hover:-translate-y-2 transition-transform duration-500">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
-                        <NavigationIcon className="w-5 h-5 text-primary-400" />
-                      </div>
-                      <div>
-                        <p className="text-[8px] font-black text-white/50 uppercase tracking-widest mb-0.5">Precise Navigation</p>
-                        <p className="text-xs font-black uppercase italic tracking-tighter">Locate this hub</p>
-                      </div>
-                    </div>
-                    <Link
-                      href={`https://www.google.com/maps/search/?api=1&query=${labLat},${labLng}`}
-                      target="_blank"
-                      className="bg-white text-gray-900 px-6 py-3.5 rounded-2xl font-black text-[9px] tracking-widest shadow-xl uppercase hover:bg-primary-50 transition-colors"
-                    >
-                      Open Maps
-                    </Link>
-                  </div>
-                </div>
+                <Link
+                  href={`https://www.google.com/maps/search/?api=1&query=${labLat},${labLng}`}
+                  target="_blank"
+                  className="px-4 py-2 bg-white text-[#0077b6] text-xs font-bold rounded-xl hover:bg-[#caf0f8] transition-all"
+                >
+                  Open Maps
+                </Link>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Re-designed Tabs Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative">
-        <div className="flex flex-col items-center mb-16">
-          <div className="flex p-1.5 bg-gray-50 border border-gray-100 rounded-full shadow-sm backdrop-blur-xl sticky top-24 z-50">
-            <button
-              onClick={() => setActiveTab('tests')}
-              className={`flex items-center gap-3 px-10 py-4 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-300 uppercase italic ${activeTab === 'tests' ? 'bg-gray-900 text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-gray-900'
+      {/* Tabs + Content */}
+      <section className="max-w-6xl mx-auto px-4 py-12">
+        {/* Tab switcher */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex p-1.5 bg-white border border-[#caf0f8] rounded-2xl shadow-sm gap-1">
+            {(['tests', 'packages'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  activeTab === tab
+                    ? 'bg-[#0077b6] text-white shadow-md shadow-[#0077b6]/20'
+                    : 'text-[#0077b6]/60 hover:text-[#0077b6] hover:bg-[#caf0f8]/40'
                 }`}
-            >
-              <TestTube className="w-4 h-4" />
-              Individual Tests
-            </button>
-            <button
-              onClick={() => setActiveTab('packages')}
-              className={`flex items-center gap-3 px-10 py-4 rounded-full text-[10px] font-black tracking-[0.2em] transition-all duration-300 uppercase italic ${activeTab === 'packages' ? 'bg-gray-900 text-white shadow-2xl scale-105' : 'text-gray-400 hover:text-gray-900'
-                }`}
-            >
-              <PackageIcon className="w-4 h-4" />
-              Comprehensive Packages
-            </button>
+              >
+                {tab === 'tests' ? <TestTube className="w-4 h-4" /> : <PackageIcon className="w-4 h-4" />}
+                {tab === 'tests' ? 'Individual Tests' : 'Health Packages'}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                  activeTab === tab ? 'bg-white/20' : 'bg-[#caf0f8]'
+                }`}>
+                  {tab === 'tests' ? tests.length : packages.length}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
 
-        <div className="min-h-[600px] animate-in fade-in slide-in-from-bottom-8 duration-700">
-          {activeTab === 'tests' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {tests.map((test) => {
-                const inCart = cart.includes(test._id);
-                return (
-                  <div key={test._id} className="bg-white rounded-[32px] p-6 border border-gray-100 hover:border-primary-100 hover:shadow-2xl transition-all flex flex-col justify-between h-[300px] relative overflow-hidden group">
-                    <div>
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center text-white group-hover:bg-primary-600 transition-colors">
-                          <Activity className="w-5 h-5" />
-                        </div>
-                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{test.category}</span>
-                      </div>
-
-                      <h3 className="text-base font-black text-gray-900 leading-tight mb-2 uppercase line-clamp-2 tracking-tighter italic">{test.name}</h3>
-                      <div className="flex items-center gap-1.5 text-[9px] text-gray-400 font-bold uppercase mb-4">
-                        <Clock className="w-3 h-3" />
-                        Reports in {test.turnaroundTime}
+        {/* Tests grid */}
+        {activeTab === 'tests' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {tests.length === 0 ? (
+              <div className="col-span-3 text-center py-16 text-[#0077b6]/40">
+                <TestTube className="w-10 h-10 mx-auto mb-3" />
+                <p className="font-semibold">No tests available</p>
+              </div>
+            ) : tests.map((test) => {
+              const inCart = cart.includes(test._id);
+              const discount = test.originalPrice
+                ? Math.round(((test.originalPrice - test.price) / test.originalPrice) * 100)
+                : 0;
+              return (
+                <div key={test._id} className="bg-white rounded-2xl border border-[#caf0f8] p-5 hover:shadow-lg hover:border-[#90e0ef] transition-all flex flex-col relative overflow-hidden group">
+                  {discount > 0 && (
+                    <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden rounded-tr-2xl pointer-events-none">
+                      <div className="absolute top-3 right-[-18px] w-24 bg-green-500 text-white text-[9px] font-bold py-1 text-center rotate-45 shadow-sm">
+                        {discount}% OFF
                       </div>
                     </div>
-
-                    <div>
-                      <div className="flex items-baseline gap-1.5 mb-5">
-                        <span className="text-xl font-black text-gray-900 tracking-tighter">₹{test.price}</span>
-                        {test.originalPrice && <span className="text-[10px] text-gray-300 line-through font-bold">₹{test.originalPrice}</span>}
-                      </div>
-
-                      <button
-                        onClick={() => inCart ? removeFromCart(test._id) : addToCart({
-                          id: test._id,
-                          testId: test.testId,
-                          name: test.name,
-                          price: test.price,
-                          originalPrice: test.originalPrice,
-                          category: test.category,
-                          sampleType: test.sampleType,
-                          turnaroundTime: test.turnaroundTime,
-                        })}
-                        className={`w-full py-4 rounded-2xl font-black text-[9px] tracking-[0.2em] transition-all uppercase ${inCart ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-900 text-white hover:shadow-lg'
-                          }`}
-                      >
-                        {inCart ? 'Remove Item' : 'Add to Cart'}
-                      </button>
+                  )}
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-bold text-[#0077b6] bg-[#caf0f8] px-2.5 py-1 rounded-full uppercase tracking-wider">{test.category}</span>
+                    <div className="flex items-center gap-1 text-[10px] text-[#00b4d8] font-semibold">
+                      <Clock className="w-3 h-3" /> {test.turnaroundTime}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          {activeTab === 'packages' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {packages.map((pkg) => {
-                const inCart = cart.includes(pkg._id);
-                return (
-                  <div key={pkg._id} className="bg-gray-900 text-white rounded-[40px] p-10 hover:shadow-2xl hover:shadow-primary-100/10 transition-all flex flex-col justify-between h-[420px] relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
-
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-8">
-                        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10">
-                          <Zap className="w-6 h-6 text-primary-400" />
-                        </div>
-                        <span className="text-[9px] font-black text-primary-400 bg-primary-400/10 px-3 py-1 rounded-full uppercase tracking-widest border border-primary-400/20 italic">Popular</span>
-                      </div>
-
-                      <h3 className="text-2xl font-black mb-4 leading-none uppercase italic tracking-tighter">{pkg.name}</h3>
-                      <div className="flex items-center gap-2 mb-6 text-[10px] font-black text-white/50 border-b border-white/5 pb-4 uppercase italic">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {pkg.testsIncluded?.length || 0} Critical Parameters
-                      </div>
-
-                      <div className="flex items-baseline gap-2 mb-8">
-                        <span className="text-3xl font-black tracking-tighter">₹{pkg.price}</span>
-                        <span className="text-xs text-white/30 line-through font-bold">₹{pkg.originalPrice}</span>
-                      </div>
+                  <h3 className="text-base font-bold text-[#03045e] mb-1 leading-snug group-hover:text-[#0077b6] transition-colors line-clamp-2">{test.name}</h3>
+                  <p className="text-xs text-[#0077b6]/50 mb-4 font-medium">Sample: {test.sampleType}</p>
+                  <div className="mt-auto">
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <span className="text-2xl font-bold text-[#03045e]">₹{test.price}</span>
+                      {test.originalPrice && <span className="text-sm text-gray-300 line-through">₹{test.originalPrice}</span>}
                     </div>
-
                     <button
-                      onClick={() => inCart ? removeFromCart(pkg._id) : addToCart({
-                        id: pkg._id,
-                        packageId: pkg.packageId,
-                        name: pkg.name,
-                        price: pkg.price,
-                        originalPrice: pkg.originalPrice,
-                        category: pkg.category,
-                        sampleType: 'Package',
-                        turnaroundTime: 'Multiple',
+                      onClick={() => inCart ? removeFromCart(test._id) : addToCart({
+                        id: test._id, testId: test.testId, name: test.name,
+                        price: test.price, originalPrice: test.originalPrice,
+                        category: test.category, sampleType: test.sampleType,
+                        turnaroundTime: test.turnaroundTime,
                       })}
-                      className={`relative z-10 w-full py-5 rounded-[24px] font-black text-[10px] tracking-[0.2em] transition-all uppercase ${inCart ? 'bg-red-500 text-white' : 'bg-primary-600 text-white hover:bg-primary-700 shadow-xl shadow-primary-900/40'
-                        }`}
+                      className={`w-full py-3 rounded-xl font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 ${
+                        inCart
+                          ? 'bg-red-50 text-red-500 border border-red-100 hover:bg-red-100'
+                          : 'bg-[#0077b6] text-white hover:bg-[#03045e] shadow-md shadow-[#0077b6]/20'
+                      }`}
                     >
-                      {inCart ? 'Remove Selection' : 'Select Package'}
+                      {inCart ? <><Trash2 className="w-3.5 h-3.5" /> Remove</> : <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>}
                     </button>
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Packages grid */}
+        {activeTab === 'packages' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {packages.length === 0 ? (
+              <div className="col-span-3 text-center py-16 text-[#0077b6]/40">
+                <PackageIcon className="w-10 h-10 mx-auto mb-3" />
+                <p className="font-semibold">No packages available</p>
+              </div>
+            ) : packages.map((pkg) => {
+              const inCart = cart.includes(pkg._id);
+              const discount = pkg.originalPrice
+                ? Math.round(((pkg.originalPrice - pkg.price) / pkg.originalPrice) * 100)
+                : 0;
+              return (
+                <div key={pkg._id} className="bg-gradient-to-br from-[#03045e] to-[#0077b6] rounded-2xl p-6 text-white flex flex-col relative overflow-hidden group hover:shadow-2xl hover:shadow-[#0077b6]/30 transition-all">
+                  {discount > 0 && (
+                    <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden rounded-tr-2xl pointer-events-none">
+                      <div className="absolute top-3 right-[-18px] w-24 bg-green-400 text-white text-[9px] font-bold py-1 text-center rotate-45 shadow-sm">
+                        {discount}% OFF
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[10px] font-bold text-[#90e0ef] bg-white/10 px-2.5 py-1 rounded-full uppercase tracking-wider border border-white/10">{pkg.category}</span>
+                  </div>
+                  <h3 title={pkg.name} className="text-lg font-bold mb-2 leading-snug line-clamp-2">{pkg.name}</h3>
+                  <div className="flex items-center gap-2 text-xs text-white/60 mb-4">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#90e0ef]" />
+                    {pkg.testsIncluded?.length || 0} tests included
+                  </div>
+                  {pkg.features?.length > 0 && (
+                    <div className="bg-white/10 rounded-xl p-3 mb-5 space-y-1.5">
+                      {pkg.features.slice(0, 3).map((f, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs text-white/70">
+                          <span className="w-4 h-4 bg-green-400/20 rounded-full flex items-center justify-center text-green-300 text-[9px]">✓</span>
+                          {f}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-auto">
+                    <div className="flex items-baseline gap-2 mb-4">
+                      <span className="text-2xl font-bold">₹{pkg.price}</span>
+                      {pkg.originalPrice && <span className="text-sm text-white/30 line-through">₹{pkg.originalPrice}</span>}
+                    </div>
+                    <button
+                      onClick={() => inCart ? removeFromCart(pkg._id) : addToCart({
+                        id: pkg._id, packageId: pkg.packageId, name: pkg.name,
+                        price: pkg.price, originalPrice: pkg.originalPrice,
+                        category: pkg.category, sampleType: 'Package', turnaroundTime: 'Multiple',
+                      })}
+                      className={`w-full py-3 rounded-xl font-semibold text-xs tracking-wide transition-all flex items-center justify-center gap-2 ${
+                        inCart
+                          ? 'bg-red-400/20 text-red-300 border border-red-400/30 hover:bg-red-400/30'
+                          : 'bg-white text-[#0077b6] hover:bg-[#caf0f8] shadow-lg'
+                      }`}
+                    >
+                      {inCart ? <><Trash2 className="w-3.5 h-3.5" /> Remove</> : <><ShoppingCart className="w-3.5 h-3.5" /> Add to Cart</>}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <Footer />
     </main>

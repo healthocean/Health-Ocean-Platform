@@ -95,6 +95,17 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/packages/by-package-id/:packageId - lookup by custom packageId field
+router.get('/by-package-id/:packageId', async (req, res) => {
+  try {
+    const pkg = await LabPackage.findOne({ packageId: req.params.packageId }).select('packageId name');
+    if (!pkg) return res.status(404).json({ error: 'Package not found' });
+    res.json({ packageId: pkg.packageId, name: pkg.name });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /api/packages/meta/categories
 router.get('/meta/categories', async (req, res) => {
   try {

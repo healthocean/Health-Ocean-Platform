@@ -4,41 +4,41 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X, User as UserIcon, ShoppingCart, LogOut, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { getUser, clearAuth, isAuthenticated } from '@/lib/auth';
 import { getCartCount } from '@/lib/cart';
 import LocationPicker from './LocationPicker';
+
+const NAV_LINKS = [
+  { href: '/',         label: 'Home' },
+  { href: '/tests',    label: 'Tests' },
+  { href: '/packages', label: 'Packages' },
+  { href: '/about',    label: 'About' },
+];
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    const checkAuth = () => {
-      if (isAuthenticated()) {
-        setUser(getUser());
-      } else {
-        setUser(null);
-      }
-    };
+    const checkAuth = () => setUser(isAuthenticated() ? getUser() : null);
+    const updateCart = () => setCartCount(getCartCount());
+    const onScroll = () => setScrolled(window.scrollY > 8);
 
-    const updateCart = () => {
-      setCartCount(getCartCount());
-    };
-
-    checkAuth();
-    updateCart();
-
+    checkAuth(); updateCart();
     window.addEventListener('storage', checkAuth);
     window.addEventListener('auth-change', checkAuth);
     window.addEventListener('cart-change', updateCart);
-
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       window.removeEventListener('storage', checkAuth);
       window.removeEventListener('auth-change', checkAuth);
       window.removeEventListener('cart-change', updateCart);
+      window.removeEventListener('scroll', onScroll);
     };
   }, []);
 
@@ -52,164 +52,175 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header className={`sticky top-0 z-50 bg-white/95 backdrop-blur-md transition-all duration-300 ${scrolled ? 'shadow-[0_2px_20px_rgba(0,119,182,0.08)] border-b border-[#caf0f8]' : 'border-b border-transparent'}`}>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center h-[72px]">
+
           {/* Logo & Location */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center gap-5">
             <Link href="/" className="flex flex-shrink-0">
-              <Image 
-                src="/logo.jpeg" 
-                alt="Health Ocean" 
-                width={95} 
-                height={95} 
+              <Image
+                src="/logo.jpeg"
+                alt="Health Ocean"
+                width={95}
+                height={95}
                 className="rounded-2xl"
                 style={{ height: 'auto' }}
               />
             </Link>
-
-            <div className="hidden md:block h-8 w-[1px] bg-gray-100 mx-2" />
-            
+            <div className="hidden md:block h-7 w-px bg-[#caf0f8]" />
             <LocationPicker />
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-12">
-            <Link href="/tests" className="text-gray-900 hover:text-primary-600 transition font-black text-xs tracking-[0.2em] uppercase">
-              Tests
-            </Link>
-            <Link href="/packages" className="text-gray-900 hover:text-primary-600 transition font-black text-xs tracking-[0.2em] uppercase">
-              Packages
-            </Link>
-            <Link href="/about" className="text-gray-900 hover:text-primary-600 transition font-black text-xs tracking-[0.2em] uppercase">
-              About
-            </Link>
+          {/* Desktop Nav */}
+          <div className="hidden lg:flex items-center gap-1">
+            {NAV_LINKS.map(({ href, label }) => {
+              const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`relative px-4 py-2 text-sm font-semibold rounded-xl transition-all duration-200 group ${
+                    active
+                      ? 'text-[#0077b6]'
+                      : 'text-[#03045e]/70 hover:text-[#0077b6] hover:bg-[#caf0f8]/40'
+                  }`}
+                >
+                  {label}
+                  {/* Active indicator */}
+                  <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-[#0077b6] transition-all duration-300 ${
+                    active ? 'w-5' : 'w-0 group-hover:w-4 group-hover:bg-[#00b4d8]'
+                  }`} />
+                </Link>
+              );
+            })}
           </div>
 
-          {/* Right side actions */}
-          <div className="hidden md:flex items-center space-x-6">
-            <Link href="/cart" className="relative p-2.5 bg-gray-50 rounded-2xl text-gray-900 hover:bg-gray-100 transition shadow-sm border border-gray-100">
-              <ShoppingCart className="w-5 h-5" />
+          {/* Right actions */}
+          <div className="hidden md:flex items-center gap-3">
+            {/* Cart */}
+            <Link href="/cart" className="relative p-2.5 rounded-xl bg-[#caf0f8]/40 hover:bg-[#caf0f8]/70 transition-all group">
+              <ShoppingCart className="w-5 h-5 text-[#0077b6] group-hover:scale-110 transition-transform" />
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-primary-600 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-white shadow-sm">
+                <span className="absolute -top-0.5 -right-0.5 bg-[#0077b6] text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1 border-2 border-white">
                   {cartCount}
                 </span>
               )}
             </Link>
-            
+
             {user ? (
-              <div className="flex items-center gap-4">
-                <Link 
+              <div className="flex items-center gap-2">
+                <Link
                   href="/profile"
-                  className="flex items-center space-x-3 px-4 py-2 bg-gray-900 text-white rounded-[20px] hover:bg-black transition-all shadow-lg group"
+                  className="flex items-center gap-2.5 px-3.5 py-2 bg-[#03045e] text-white rounded-2xl hover:bg-[#0077b6] transition-all shadow-md group"
                 >
-                  <div className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center border border-white/20">
-                    <UserIcon className="w-4 h-4 text-white" />
+                  <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center border border-white/20">
+                    <UserIcon className="w-3.5 h-3.5 text-white" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[9px] font-black text-white/50 uppercase tracking-widest leading-none mb-0.5">Profile</p>
-                    <span className="text-xs font-black tracking-tight">{user.name}</span>
+                    <p className="text-[8px] font-bold text-white/50 uppercase tracking-widest leading-none mb-0.5">Profile</p>
+                    <span className="text-xs font-semibold tracking-tight leading-none">{user.name}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-white/30 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-3.5 h-3.5 text-white/30 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
-                
                 <button
                   onClick={handleLogout}
-                  className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition border border-red-100 group"
+                  className="p-2.5 text-red-400 hover:bg-red-50 rounded-xl transition-all"
                   title="Logout"
                 >
-                  <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link href="/login" className="px-6 py-3 text-sm font-black text-gray-900 hover:bg-gray-50 rounded-2xl transition tracking-widest uppercase">
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-semibold text-[#0077b6] hover:bg-[#caf0f8]/50 rounded-xl transition-all"
+                >
                   Login
                 </Link>
-                <Link href="/signup" className="px-8 py-3.5 bg-gray-900 text-white text-xs font-black rounded-2xl hover:bg-black transition shadow-xl tracking-widest uppercase">
+                <Link
+                  href="/signup"
+                  className="px-5 py-2.5 bg-[#0077b6] text-white text-sm font-semibold rounded-xl hover:bg-[#03045e] transition-all shadow-md shadow-[#0077b6]/20"
+                >
                   Join Now
                 </Link>
               </div>
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile toggle */}
           <button
-            className="lg:hidden p-3 bg-gray-50 rounded-2xl border border-gray-100 text-gray-900"
+            className="lg:hidden p-2.5 rounded-xl text-[#03045e] hover:bg-[#caf0f8]/50 transition-all"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="lg:hidden py-8 space-y-6 border-t border-gray-50 animate-in slide-in-from-top duration-300">
-            <Link
-              href="/tests"
-              className="block text-xl font-black text-gray-900 hover:text-primary-600 transition tracking-tighter"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              TESTS
-            </Link>
-            <Link
-              href="/packages"
-              className="block text-xl font-black text-gray-900 hover:text-primary-600 transition tracking-tighter"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              PACKAGES
-            </Link>
-            <Link
-              href="/about"
-              className="block text-xl font-black text-gray-900 hover:text-primary-600 transition tracking-tighter"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              ABOUT US
-            </Link>
-            
+          <div className="lg:hidden pb-6 pt-2 border-t border-[#caf0f8] animate-in slide-in-from-top duration-200">
+            <div className="space-y-1 mb-6">
+              {NAV_LINKS.map(({ href, label }) => {
+                const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all ${
+                      active
+                        ? 'bg-[#caf0f8]/60 text-[#0077b6]'
+                        : 'text-[#03045e]/70 hover:bg-[#caf0f8]/30 hover:text-[#0077b6]'
+                    }`}
+                  >
+                    {label}
+                    {active && <span className="w-1.5 h-1.5 rounded-full bg-[#0077b6]" />}
+                  </Link>
+                );
+              })}
+            </div>
+
             {user ? (
-              <div className="pt-8 space-y-4 border-t border-gray-100">
-                <Link 
+              <div className="space-y-2 pt-4 border-t border-[#caf0f8]">
+                <Link
                   href="/profile"
-                  className="flex items-center justify-between p-4 bg-gray-900 text-white rounded-3xl shadow-xl"
                   onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center justify-between p-4 bg-[#03045e] text-white rounded-2xl"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-                      <UserIcon className="w-6 h-6" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                      <UserIcon className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-black text-white/50 uppercase tracking-widest leading-none mb-1">My Account</p>
-                      <p className="text-lg font-black tracking-tight">{user.name}</p>
+                      <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest mb-0.5">My Account</p>
+                      <p className="text-sm font-semibold">{user.name}</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-6 h-6 text-white/20" />
+                  <ChevronRight className="w-5 h-5 text-white/20" />
                 </Link>
-                
                 <button
-                  onClick={(e) => {
-                    handleLogout(e);
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full py-5 bg-red-50 text-red-600 rounded-3xl font-black text-xs tracking-[0.2em] flex items-center justify-center gap-3 border border-red-100 shadow-sm"
+                  onClick={(e) => { handleLogout(e); setIsMenuOpen(false); }}
+                  className="w-full py-3.5 bg-red-50 text-red-500 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 border border-red-100"
                 >
-                  <LogOut className="w-5 h-5" />
-                  LOGOUT FROM ACCOUNT
+                  <LogOut className="w-4 h-4" />
+                  Logout
                 </button>
               </div>
             ) : (
-              <div className="pt-8 space-y-3">
-                <Link 
-                  href="/login" 
-                  className="block w-full py-5 border-2 border-gray-100 rounded-[32px] text-center font-black text-xs tracking-widest uppercase"
+              <div className="space-y-2 pt-4 border-t border-[#caf0f8]">
+                <Link
+                  href="/login"
                   onClick={() => setIsMenuOpen(false)}
+                  className="block w-full py-3.5 border border-[#90e0ef] text-[#0077b6] rounded-2xl text-center font-semibold text-sm hover:bg-[#caf0f8]/40 transition-all"
                 >
                   Login
                 </Link>
-                <Link 
-                  href="/signup" 
-                  className="block w-full py-5 bg-gray-900 text-white rounded-[32px] text-center font-black text-xs tracking-widest uppercase"
+                <Link
+                  href="/signup"
                   onClick={() => setIsMenuOpen(false)}
+                  className="block w-full py-3.5 bg-[#0077b6] text-white rounded-2xl text-center font-semibold text-sm hover:bg-[#03045e] transition-all"
                 >
                   Create Account
                 </Link>

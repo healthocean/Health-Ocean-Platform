@@ -141,7 +141,7 @@ export default function LocationPicker() {
                 <button
                   type="submit"
                   disabled={pincode.length !== 6 || isLoading}
-                  className="w-full py-4 bg-gray-900 hover:bg-black text-white rounded-2xl font-black text-sm tracking-widest transition shadow-lg disabled:opacity-30 disabled:hover:bg-gray-900"
+                  className="w-full py-4 bg-[#0077b6] hover:bg-[#03045e] text-white rounded-2xl font-black text-sm tracking-widest transition shadow-lg disabled:opacity-30 disabled:hover:bg-[#0077b6]"
                 >
                   APPLY LOCATION
                 </button>
